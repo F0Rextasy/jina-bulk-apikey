@@ -34,7 +34,7 @@
 
 ## ✨ Por qué existe esto
 
-Jina AI entrega **claves API de prueba sin necesidad de cuenta**: la página del reader ejecuta un Turnstile gestionado y `POST keygen.jina.ai/trial` devuelve `{"api_key":"jina_…"}` (cuando la cuota de prueba por IP responde 429, `POST keygen.jina.ai/empty` igualmente acuña una clave de 0 tokens). Cada clave lleva un **saldo de prueba de 10.000.000 de tokens** (trial_end 2036) en una cuenta anónima `auto_<uuid>`, y tanto embeddings como rerank responden 200 con recuentos de tokens. Una clave por salida — esa es la unidad que esta herramienta procesa por lotes.
+Jina AI reparte **claves API de prueba sin necesidad de cuenta**: la página del reader ejecuta un Turnstile gestionado y `POST keygen.jina.ai/trial` devuelve `{"api_key":"jina_…"}` (cuando la cuota de prueba por IP responde 429, `POST keygen.jina.ai/empty` sigue acuñando una clave de 0 tokens). Cada clave lleva un **saldo de prueba de 10.000.000 de tokens** (trial_end 2036) en una cuenta anónima `auto_<uuid>`, y tanto embeddings como rerank responden 200 con recuentos de tokens. Una clave por salida — esa es la unidad que este herramienta procesa por lotes.
 
 ## 🎁 Nivel gratuito — cuánto obtienes
 
@@ -42,12 +42,12 @@ Jina AI entrega **claves API de prueba sin necesidad de cuenta**: la página del
 | --- | --- |
 | Cuenta | ninguna — `auto_<uuid>` anónima por clave (`email: null`) |
 | Saldo de prueba | **10.000.000 de tokens** por clave (wallet `trial_balance`, trial_end 2036-10-19) |
-| Barrera | Cloudflare Turnstile gestionado en `keygen.jina.ai/trial` (token nuevo por ejecución) |
-| Escalera 429 | cuota de prueba por IP agotada → `POST keygen.jina.ai/empty` igualmente emite una clave (0 tokens de prueba) |
-| Límites de tasa | sin clave: 20 RPM; clave gratuita: **500 RPM** (embed/rerank; 2M TPM por clave) |
+| Puerta | Cloudflare Turnstile gestionado en `keygen.jina.ai/trial` (token nuevo por ejecución) |
+| Escalera 429 | cuota de prueba por IP agotada → `POST keygen.jina.ai/empty` sigue emitiendo una clave (0 tokens de prueba) |
+| Límites de velocidad | sin clave: 20 RPM; clave gratuita: **500 RPM** (embed/rerank; 2M TPM por clave) |
 | Gestión de claves | `api.jina.ai/api/v1/api_key` (revocar) con una cabecera `cf-turnstile-response` |
 
-> 💡 El nivel gratuito lo define Jina AI y puede cambiar. Consulta las cifras en vivo en [jina.ai](https://jina.ai) — y deja que la propia barrera de la herramienta decida:
+> 💡 El nivel gratuito lo define Jina AI y puede cambiar. Consulta las cifras en vivo en [jina.ai](https://jina.ai) — y deja que la propia puerta de la herramienta decida:
 
 ```bash
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
@@ -90,14 +90,14 @@ Superficies complementarias sin clave: `r.jina.ai` (reader, 20 RPM) y `s.jina.ai
 
 ```bash
 cd jina-bulk-apikey
-printf 'socks5://host:port\n' > proxies.txt
+printf 'socks5://host:port\n' > proxies.txt   # optional — without it the tool runs direct
 node src/launcher.js        # interactive: mint / verify / screen / settings
 # or directly — one Turnstile token per key (see the note below):
 node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
 ```
 
-El endpoint de prueba está detrás de un Cloudflare Turnstile gestionado, por lo que el CLI necesita un token nuevo por clave: abre <https://jina.ai/reader>, pulsa **GET YOUR API KEY** y copia el valor de `cf-turnstile-response` del input oculto (DevTools → Elements), o apunta `--token-cmd` a un solver que imprima un token en stdout. `keys.txt` se escribe solo tras un 200 en vivo de embeddings/rerank; `accounts.json` guarda el user_id + la instantánea del wallet.
+El endpoint de prueba está detrás de un Cloudflare Turnstile gestionado, así que el CLI necesita un token nuevo por clave: abre <https://jina.ai/reader>, pulsa **GET YOUR API KEY** y copia el valor `cf-turnstile-response` del input oculto (DevTools → Elements), o apunta `--token-cmd` a un solver que imprima un token en stdout. `keys.txt` se escribe solo tras un 200 en vivo de embeddings/rerank; `accounts.json` guarda el user_id + la instantánea del wallet.
 
 ### 🖱️ El launcher
 
@@ -134,7 +134,7 @@ inbox (one address per account)                                  a fresh address
 | Paso | Llamada | Notas |
 | --- | --- | --- |
 | página | `jina.ai/reader` → "GET YOUR API KEY" | widget Turnstile gestionado |
-| clave | `POST https://keygen.jina.ai/trial` (multipart, `cf-turnstile-response`) | 200 → `api_key`; 429 → probar `/empty` |
+| clave | `POST https://keygen.jina.ai/trial` (multipart, `cf-turnstile-response`) | 200 → `api_key`; 429 → prueba `/empty` |
 | prueba | `POST api.jina.ai/v1/embeddings` (+ rerank) | 200 con uso real = clave activa |
 | rotación | salida nueva por clave | la cuota de prueba es por IP |
 
@@ -148,14 +148,18 @@ node src/cli.js --connect-9router
 node src/cli.js --help
 ```
 
-| Env | Por defecto | Significado |
+| Variable de entorno | Por defecto | Significado |
 | --- | --- | --- |
 | `JINA_PROXIES` | `proxies.txt` | pool de salidas, una línea por proxy |
 | `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | modelo para la verificación en vivo |
 
 ## 🛰️ Detrás de un proxy
 
-**Obligatorio — las claves se emiten por IP.** Una salida nueva por clave es el mecanismo de escala (la cuota de prueba es por IP); la herramienta examina el pool contra `keygen.jina.ai` y `api.jina.ai` antes de una ejecución.
+**Opcional — recomendado a escala (límites por IP, baneos).** La herramienta también funciona sin proxy.
+
+- **Con un pool:** pasa `--pool <file>` (o define `JINA_PROXIES`) y cada petición sale por una salida de esa lista — una línea muerta hace fallar ese intento y la herramienta pasa a la siguiente (fail-closed mientras se proporciona un pool; el pool se vuelve a sondear al usarse).
+- **Sin un pool:** el CLI imprime `running WITHOUT a proxy (direct)` y se conecta directamente. Nada del registro, check-in, acuñación de claves o verificación cambia — solo desde dónde salen los paquetes.
+- Ejecuta `--screen` en cualquiera de los dos modos: prueba las salidas que tengas (o la ruta directa) contra el proveedor antes de una ejecución real.
 
 ## 📄 Archivos
 

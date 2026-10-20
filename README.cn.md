@@ -34,7 +34,7 @@
 
 ## ✨ 为什么会有这个项目
 
-Jina AI **无需任何账户**即可发放试用 API 密钥：reader 页面运行一个托管式 Turnstile，`POST keygen.jina.ai/trial` 返回 `{"api_key":"jina_…"}`（当每 IP 试用配额返回 429 时，`POST keygen.jina.ai/empty` 仍会签发一个 0 token 的密钥）。每个密钥在匿名 `auto_<uuid>` 账户上带有 **10,000,000 token 试用余额**（trial_end 2036），且 embeddings 和 rerank 均返回 200 并附带 token 计数。每个出口一个密钥 —— 这就是本工具批量处理的单位。
+Jina AI **无需任何账户**即可发放试用 API 密钥：reader 页面运行一个托管式 Turnstile，`POST keygen.jina.ai/trial` 返回 `{"api_key":"jina_…"}`（当每 IP 试用配额返回 429 时，`POST keygen.jina.ai/empty` 仍会签发一个 0 token 的密钥）。每个密钥在匿名 `auto_<uuid>` 账户下都带有 **10,000,000 token 的试用余额**（trial_end 2036），并且 embeddings 和 rerank 都会返回 200 及 token 计数。每个出口一个密钥 —— 这就是本工具批量处理的单位。
 
 ## 🎁 免费额度 —— 你能获得多少
 
@@ -42,12 +42,12 @@ Jina AI **无需任何账户**即可发放试用 API 密钥：reader 页面运�
 | --- | --- |
 | 账户 | 无 —— 每个密钥对应匿名 `auto_<uuid>`（`email: null`） |
 | 试用余额 | 每个密钥 **10,000,000 token**（钱包 `trial_balance`，trial_end 2036-10-19） |
-| 关卡 | `keygen.jina.ai/trial` 上的托管式 Cloudflare Turnstile（每次运行使用全新 token） |
+| 门禁 | `keygen.jina.ai/trial` 上的托管式 Cloudflare Turnstile（每次运行使用全新 token） |
 | 429 阶梯 | 触发每 IP 试用配额 → `POST keygen.jina.ai/empty` 仍会签发密钥（0 试用 token） |
 | 速率限制 | 无密钥：20 RPM；免费密钥：**500 RPM**（embed/rerank；每密钥 2M TPM） |
 | 密钥管理 | `api.jina.ai/api/v1/api_key`（吊销），需带 `cf-turnstile-response` 请求头 |
 
-> 💡 免费额度由 Jina AI 设定，可能发生变化。请到 [jina.ai](https://jina.ai) 查看实时数字 —— 并让工具自身的关卡来决定：
+> 💡 免费额度由 Jina AI 设定，可能会变化。请在 [jina.ai](https://jina.ai) 查看实时数值 —— 并让工具自身的门禁来判定：
 
 ```bash
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
@@ -64,7 +64,7 @@ node src/cli.js --verify-only     # every key in keys.txt is re-tested with a re
 | `jina-ai/jina-reranker-v3`, `jina-ai/jina-reranker-v3.5` | rerank 系列 | 目录 |
 | `jina-ai/jina-ocr-v1`, `jina-ai/ReaderLM-v2` | OCR / reader | 目录 |
 | `jina-ai/jina-clip-v2`, colbert / code-embeddings 系列 | embeddings 家族 | 目录 |
-> ⚠️ **调用陷阱：** `GET /v1/models` 列出的 id 带有 `jina-ai/` 所有者前缀，但 API 调用接受的是**短 id** —— `{"model":"jina-embeddings-v4"}` 返回 200，带前缀的 `jina-ai/jina-embeddings-v4` 返回 **422**（实测于 2026-10-19）。
+> ⚠️ **调用陷阱：** `GET /v1/models` 列出的 id 带有 `jina-ai/` 所有者前缀，但 API 调用使用的是**短 id** —— `{"model":"jina-embeddings-v4"}` 返回 200，而带前缀的 `jina-ai/jina-embeddings-v4` 返回 **422**（实测于 2026-10-19）。
 
 ```bash
 curl https://api.jina.ai/v1/embeddings \
@@ -90,14 +90,14 @@ print(r.status_code, r.json()["usage"])
 
 ```bash
 cd jina-bulk-apikey
-printf 'socks5://host:port\n' > proxies.txt
+printf 'socks5://host:port\n' > proxies.txt   # optional — without it the tool runs direct
 node src/launcher.js        # interactive: mint / verify / screen / settings
 # or directly — one Turnstile token per key (see the note below):
 node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
 ```
 
-试用端点位于托管式 Cloudflare Turnstile 之后，因此 CLI 需要为每个密钥提供一个全新 token：打开 <https://jina.ai/reader>，点击 **GET YOUR API KEY**，然后从隐藏输入框中复制 `cf-turnstile-response` 值（DevTools → Elements），或者将 `--token-cmd` 指向一个在 stdout 上打印 token 的求解器。`keys.txt` 仅在实时 embeddings/rerank 返回 200 后才会写入；`accounts.json` 保存 user_id + 钱包快照。
+试用端点位于托管式 Cloudflare Turnstile 之后，因此 CLI 每个密钥需要一个全新 token：打开 <https://jina.ai/reader>，点击 **GET YOUR API KEY**，然后从隐藏输入框中复制 `cf-turnstile-response` 值（DevTools → Elements），或者将 `--token-cmd` 指向一个会向 stdout 打印 token 的求解器。`keys.txt` 仅在实时 embeddings/rerank 返回 200 后才会写入；`accounts.json` 保存 user_id + 钱包快照。
 
 ### 🖱️ 启动器
 
@@ -108,9 +108,9 @@ node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 | 检查 | 结果 |
 | --- | --- |
 | `POST keygen.jina.ai/trial`（Turnstile token） | **200** `{"api_key":"jina_…"}` —— 浏览器流程，刷新一次后首次尝试即成功 |
-| `POST keygen.jina.ai/empty`（429 阶梯） | **200** —— 0 token 密钥仍会签发 |
-| `POST /v1/embeddings`（`jina-embeddings-v4`，短 id）—— 对**每个**密钥在写入前执行 | **200**，已计数 token |
-| `POST /v1/rerank`（`jina-reranker-v2-base-multilingual`，短 id） | **200**，已计数 token |
+| `POST keygen.jina.ai/empty`（429 阶梯） | **200** —— 0 token 的密钥仍会签发 |
+| `POST /v1/embeddings`（`jina-embeddings-v4`，短 id）—— 对**每个**密钥在写入前执行 | **200**，已统计 token |
+| `POST /v1/rerank`（`jina-reranker-v2-base-multilingual`，短 id） | **200**，已统计 token |
 | `jina-ai/jina-embeddings-v4`（带前缀 id） | **422** —— 请使用短 id（实测于 2026-10-19） |
 | 钱包 | `trial_balance=10,000,000`，`trial_end` 2036，`email: null` |
 | 未通过检查的密钥 | 永不写入 —— 账户保留在 `accounts.json` 中 |
@@ -135,7 +135,7 @@ inbox (one address per account)                                  a fresh address
 | --- | --- | --- |
 | 页面 | `jina.ai/reader` → "GET YOUR API KEY" | 托管式 Turnstile 组件 |
 | 密钥 | `POST https://keygen.jina.ai/trial`（multipart，`cf-turnstile-response`） | 200 → `api_key`；429 → 尝试 `/empty` |
-| 证明 | `POST api.jina.ai/v1/embeddings`（+ rerank） | 200 且带真实 usage = 密钥可用 |
+| 证明 | `POST api.jina.ai/v1/embeddings`（+ rerank） | 200 且带真实用量 = 密钥可用 |
 | 轮换 | 每个密钥使用全新出口 | 试用配额按 IP 计算 |
 
 ## ⚙️ CLI 选项
@@ -153,9 +153,13 @@ node src/cli.js --help
 | `JINA_PROXIES` | `proxies.txt` | 出口池，每行一个代理 |
 | `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | 用于实时验证的模型 |
 
-## 🛰️ 代理之后
+## 🛰️ 在代理之后
 
-**必需 —— 密钥按 IP 签发。** 每个密钥使用全新出口是扩展机制（试用配额按 IP 计算）；工具会在运行前针对 `keygen.jina.ai` 和 `api.jina.ai` 筛选代理池。
+**可选 —— 大规模使用时推荐（每 IP 限制、封禁）。** 本工具在没有代理的情况下也能工作。
+
+- **有代理池时：** 传入 `--pool <file>`（或设置 `JINA_PROXIES`），每个请求都会经过该列表中的一个出口 —— 失效线路会使该次尝试失败，工具会转向下一个（提供代理池时采用故障关闭策略；代理池在使用时会重新探测）。
+- **无代理池时：** CLI 会打印 `running WITHOUT a proxy (direct)` 并直接连接。注册、签到、密钥签发或验证都不会有任何变化 —— 只是数据包的发出位置不同。
+- 对任一模式运行 `--screen`：它会在真实运行前，针对提供商测试你拥有的出口（或直连路由）。
 
 ## 📄 文件
 
@@ -176,19 +180,19 @@ node src/connect-9router.js --base http://localhost:20128 --password 123456
 
 默认值：`--prefix jina`、`--base-url https://api.jina.ai/v1`、`--model jina-ai/jina-embeddings-v4`。模型以 `jina/<model id>` 形式提供。
 
-## 🔑 一个密钥能给你带来什么
+## 🔑 一个密钥能给你什么
 
 | | |
 | --- | --- |
 | 🏢 提供商 | **Jina AI** —— [jina.ai](https://jina.ai) |
-| 🎁 提供商提供的内容 | 匿名试用密钥，10M 试用 token，无需注册 |
-| 🔑 一个密钥能给你带来什么 | embeddings/rerank 500 RPM（2M TPM），`https://api.jina.ai/v1` 上 30 个目录 id |
+| 🎁 提供商提供什么 | 匿名试用密钥，10M 试用 token，无需注册 |
+| 🔑 一个密钥能给你什么 | embeddings/rerank 500 RPM（2M TPM），`https://api.jina.ai/v1` 上 30 个目录 id |
 | 🌐 API 形态 | `POST https://api.jina.ai/v1/embeddings` · `POST /v1/rerank` |
-| 🔒 你的数据 | 仅联系 `jina.ai` / `keygen.jina.ai` / `api.jina.ai` |
+| 🔒 你的数据 | 仅会联系 `jina.ai` / `keygen.jina.ai` / `api.jina.ai` |
 
 ## 🐞 问题反馈
 
-如果 Jina 更改了 keygen 端点、Turnstile sitekey 或试用政策，工具会就此停止并说明原因。请附上命令和确切输出 **[提交 issue](../../issues)**。
+如果 Jina 更改了 keygen 端点、Turnstile sitekey 或试用政策，工具会在此处停止并说明原因。请附上命令和确切输出 **[提交 issue](../../issues)**。
 
 ## 📄 许可证
 

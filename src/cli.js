@@ -27,7 +27,7 @@
  *   --count N        keys to issue                                    [5]
  *   --conc N         keys in flight at once, max 4                    [1]
  *   --gap MS         pause between keys                                [800]
- *   --pool FILE      exit list, one per line   (env JINA_PROXIES / proxies.txt)
+ *   --pool FILE      exit list, one per line, optional (env JINA_PROXIES) [proxies.txt]
  *   --model ID       model used for the live gate  [jina-ai/jina-embeddings-v4]
  *   --token T        Turnstile token(s), comma separated (one per key)
  *   --token-cmd CMD  command that prints one fresh token on stdout (per key)
@@ -36,8 +36,9 @@
  *   --timeout MS     per-request timeout                              [45000]
  *   --help
  *
- * Zero dependencies. Node.js >= 18. Nothing here talks to Jina directly: every
- * request leaves through an exit from your pool.
+ * Zero dependencies. Node.js >= 18. Your proxy list is OPTIONAL: pass --pool
+ * (or the JINA_PROXIES env) and every request goes through an exit from it;
+ * without a pool the tool connects directly.
  */
 
 const fs = require('fs');
@@ -81,17 +82,23 @@ if (has('help') || has('h')) {
 
   --count N        keys to issue                                       [5]
   --conc N         keys in flight at once, max 4                       [1]
-  --pool FILE      exit list, one per line          (env JINA_PROXIES) [proxies.txt]
+  --pool FILE      exit list, one per line   (env JINA_PROXIES) [optional]
   --model ID       embeddings model for the gate       [jina-embeddings-v4]
   --token T        one Turnstile token per key, comma separated
   --token-cmd CMD  command that prints one fresh token (run once per key)
   --verify-only    re-test keys.txt keys
   --screen         only screen the pool
 
+Requests go through the exits in your proxy list when one is provided (--pool or
+the JINA_PROXIES env); without a pool the tool connects DIRECTLY.
+
 Turnstile: Jina's trial endpoint is behind a managed Cloudflare Turnstile. Get a
 token from any browser (open ${READER_URL}, press "GET YOUR API KEY", copy the
 hidden input cf-turnstile-response), pass it with --token, or wire a solver with
---token-cmd. One token is spent per key.`);
+--token-cmd. One token is spent per key.
+
+Requests go through your proxy list when one is provided (--pool / env). Without
+a pool the tool connects directly.`);
   process.exit(0);
 }
 
@@ -126,6 +133,16 @@ function parseProxy(line) {
     return { protocol, host: m[4], port: Number(m[5]), auth: m[2] ? `${m[2]}:${m[3]}` : null };
   }
   return { protocol: 'http', host: m[3], port: Number(m[4]), auth: m[1] ? `${m[1]}:${m[2]}` : null };
+}
+
+/** A raw socket straight to host:port (no proxy) — the direct-mode twin of connectThrough. */
+function directConnect(host, port, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const sock = net.connect({ host, port });
+    const t = setTimeout(() => { sock.destroy(); reject(new Error(`connect timeout (${host}:${port})`)); }, timeoutMs);
+    sock.once('error', (e) => { clearTimeout(t); try { sock.destroy(); } catch {} reject(new Error(`connect failed: ${e.message}`)); });
+    sock.once('connect', () => { clearTimeout(t); resolve(sock); });
+  });
 }
 
 /** Raw socket to host:port through the exit (CONNECT for http, SOCKS5 for socks). */
@@ -202,7 +219,7 @@ function connectThrough(proxy, host, port, timeoutMs) {
 /** One HTTPS request through one exit. Returns { status, headers, body }. */
 async function exitFetch(proxy, url, { method = 'GET', headers = {}, body = null, redirects = 2, timeoutMs = TIMEOUT_MS } = {}) {
   const u = new URL(url);
-  const raw = await connectThrough(proxy, u.hostname, u.port || 443, timeoutMs);
+  const raw = proxy ? await connectThrough(proxy, u.hostname, u.port || 443, timeoutMs) : await directConnect(u.hostname, u.port || 443, timeoutMs);
   const sock = tls.connect({ socket: raw, servername: u.hostname });
   await new Promise((res, rej) => { sock.once('secureConnect', res); sock.once('error', rej); });
   const chunks = [];
@@ -267,11 +284,16 @@ async function gate(proxy, key) {
 
 function loadPool() {
   if (!fs.existsSync(POOL_FILE)) {
-    console.error(`no exit list at ${POOL_FILE}\n  one exit per line, e.g. socks5://host:port — see README "Behind a proxy"`);
-    process.exit(2);
+    // No pool = DIRECT mode: a proxy is recommended at scale (per-IP trial
+    // quota), but the tool works without one. `null` is the direct sentinel.
+    console.log(`no proxy list at ${POOL_FILE} — running WITHOUT a proxy (direct). Put exits there (or pass --pool) to rotate per key.`);
+    return [null];
   }
   const exits = fs.readFileSync(POOL_FILE, 'utf8').split(/\r?\n/).map(parseProxy).filter(Boolean);
-  if (!exits.length) { console.error(`${POOL_FILE} has no usable exits (comment lines do not count)`); process.exit(2); }
+  if (!exits.length) {
+    console.log(`${POOL_FILE} has no usable exits — running WITHOUT a proxy (direct).`);
+    return [null];
+  }
   return exits;
 }
 
@@ -283,9 +305,9 @@ async function screen(exits) {
       const r = await exitFetch(e, `${API}/v1/models`, { timeoutMs: 20000 });
       const good = r.status === 200;
       if (good) ok++;
-      console.log(`  ${good ? '✔' : '✘'} ${e.host}:${e.port} status=${r.status} ${Date.now() - t0}ms`);
+      console.log(`  ${good ? '✔' : '✘'} ${e ? `${e.host}:${e.port}` : 'direct'} status=${r.status} ${Date.now() - t0}ms`);
     } catch (err) {
-      console.log(`  ✘ ${e.host}:${e.port} ${String(err.message).slice(0, 80)}`);
+      console.log(`  ✘ ${e ? `${e.host}:${e.port}` : 'direct'} ${String(err.message).slice(0, 80)}`);
     }
   }
   console.log(`screened ${Math.min(exits.length, 64)} exit(s): ${ok} reach api.jina.ai`);
@@ -310,7 +332,7 @@ async function mint() {
   const exits = loadPool();
   if (SCREEN) return void (await screen(exits));
   const accounts = loadAccounts();
-  log(`jina · ${COUNT} key(s) · conc ${CONC} · exits ${exits.length} from ${path.basename(POOL_FILE)} · keys land in keys.txt`);
+  log(`jina · ${COUNT} key(s) · conc ${CONC} · exits ${exits.filter(Boolean).length || 'direct'} from ${path.basename(POOL_FILE)} · keys land in keys.txt`);
   let made = 0;
   for (let round = 0; round < COUNT; round += CONC) {
     const jobs = [];
@@ -337,12 +359,12 @@ async function mint() {
           const g = await gate(exit, key);
           if (g.emb.status !== 200) {
             log(`key ${i + 1}: issued but embeddings gate ${g.emb.status} — recorded in accounts.json, not written`);
-            accounts.push({ at: new Date().toISOString(), via, exit: `${exit.host}:${exit.port}`, key_masked: `${key.slice(0, 10)}…`, gate: g.emb.status });
+            accounts.push({ at: new Date().toISOString(), via, exit: exit ? `${exit.host}:${exit.port}` : 'direct', key_masked: `${key.slice(0, 10)}…`, gate: g.emb.status });
             saveAccounts(accounts);
             return;
           }
           appendKey(key);
-          accounts.push({ at: new Date().toISOString(), via, exit: `${exit.host}:${exit.port}`, key_masked: `${key.slice(0, 10)}…`, gate: 200, rerank: g.rerank ? g.rerank.status : null });
+          accounts.push({ at: new Date().toISOString(), via, exit: exit ? `${exit.host}:${exit.port}` : 'direct', key_masked: `${key.slice(0, 10)}…`, gate: 200, rerank: g.rerank ? g.rerank.status : null });
           saveAccounts(accounts);
           made++;
           log(`key ${i + 1} ✔ ${via} · embeddings 200 · rerank ${g.rerank ? g.rerank.status : 'n/a'} · ${key.slice(0, 10)}…`);

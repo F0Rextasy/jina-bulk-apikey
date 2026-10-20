@@ -20,7 +20,7 @@
 [![9Router](https://img.shields.io/badge/9Router-connector-8B5CF6?style=for-the-badge)](#-connect-to-9router)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
-[🛠 Démarrage rapide](#-quick-start) · [🎁 Niveau gratuit](#-free-tier--how-much-you-get) · [🤖 Modèles](#-models--all-30-of-them) · [🧪 Utiliser l'API](#-how-to-use-the-api) · [✅ Vérifié](#-verified-working--every-key-is-tested) · [🧭 Comment ça marche](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ Options](#️-cli-options) · [🛰️ Proxys](#️-behind-a-proxy) · [🐞 Problèmes](#-issues)
+[🛠 Démarrage rapide](#-quick-start) · [🎁 Offre gratuite](#-free-tier--how-much-you-get) · [🤖 Modèles](#-models--all-30-of-them) · [🧪 Utiliser l'API](#-how-to-use-the-api) · [✅ Vérifié](#-verified-working--every-key-is-tested) · [🧭 Comment ça marche](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ Options](#️-cli-options) · [🛰️ Proxys](#️-behind-a-proxy) · [🐞 Problèmes](#-issues)
 
 </div>
 
@@ -34,11 +34,11 @@
 
 ## ✨ Pourquoi cet outil existe
 
-Jina AI distribue des **clés API d'essai sans aucun compte** : la page reader exécute un Turnstile géré et `POST keygen.jina.ai/trial` renvoie `{"api_key":"jina_…"}` (lorsque le quota d'essai par IP répond 429, `POST keygen.jina.ai/empty` génère quand même une clé à 0 token). Chaque clé porte un **solde d'essai de 10 000 000 de tokens** (trial_end 2036) sur un compte anonyme `auto_<uuid>`, et les surfaces embeddings comme rerank répondent 200 avec les décomptes de tokens. Une clé par sortie — c'est l'unité que cet outil traite par lots.
+Jina AI distribue des **clés API d'essai sans aucun compte** : la page reader exécute un Turnstile géré et `POST keygen.jina.ai/trial` renvoie `{"api_key":"jina_…"}` (lorsque le quota d'essai par IP répond 429, `POST keygen.jina.ai/empty` génère quand même une clé à 0 token). Chaque clé porte un **solde d'essai de 10 000 000 de tokens** (trial_end 2036) sur un compte anonyme `auto_<uuid>`, et les surfaces embeddings comme rerank répondent 200 avec le décompte des tokens. Une clé par sortie — c'est l'unité que cet outil traite par lots.
 
-## 🎁 Niveau gratuit — ce que vous obtenez
+## 🎁 Offre gratuite — ce que vous obtenez
 
-| Élément | Valeur |
+| Quoi | Valeur |
 | --- | --- |
 | Compte | aucun — `auto_<uuid>` anonyme par clé (`email: null`) |
 | Solde d'essai | **10 000 000 de tokens** par clé (portefeuille `trial_balance`, trial_end 2036-10-19) |
@@ -47,7 +47,7 @@ Jina AI distribue des **clés API d'essai sans aucun compte** : la page reader e
 | Limites de débit | sans clé : 20 RPM ; clé gratuite : **500 RPM** (embed/rerank ; 2M TPM par clé) |
 | Gestion des clés | `api.jina.ai/api/v1/api_key` (révocation) avec un en-tête `cf-turnstile-response` |
 
-> 💡 Le niveau gratuit est défini par Jina AI et peut changer. Consultez les chiffres en direct sur [jina.ai](https://jina.ai) — et laissez la barrière de l'outil décider :
+> 💡 L'offre gratuite est définie par Jina AI et peut changer. Consultez les chiffres en direct sur [jina.ai](https://jina.ai) — et laissez la barrière de l'outil décider :
 
 ```bash
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
@@ -57,7 +57,7 @@ node src/cli.js --verify-only     # every key in keys.txt is re-tested with a re
 
 `GET https://api.jina.ai/v1/models` est public et a renvoyé **30 ids**, dont :
 
-| ID de modèle | Surface | Vérifié |
+| ID du modèle | Surface | Vérifié |
 | --- | --- | --- |
 | `jina-ai/jina-embeddings-v4` | `POST /v1/embeddings` | **200** (tokens=3) |
 | `jina-ai/jina-reranker-v2-base-multilingual` | `POST /v1/rerank` | **200** (tokens=17) |
@@ -90,7 +90,7 @@ Surfaces compagnes sans clé : `r.jina.ai` (reader, 20 RPM) et `s.jina.ai` (sear
 
 ```bash
 cd jina-bulk-apikey
-printf 'socks5://host:port\n' > proxies.txt
+printf 'socks5://host:port\n' > proxies.txt   # optional — without it the tool runs direct
 node src/launcher.js        # interactive: mint / verify / screen / settings
 # or directly — one Turnstile token per key (see the note below):
 node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
@@ -133,7 +133,7 @@ inbox (one address per account)                                  a fresh address
 
 | Étape | Appel | Remarques |
 | --- | --- | --- |
-| page | `jina.ai/reader` → « GET YOUR API KEY » | widget Turnstile géré |
+| page | `jina.ai/reader` → "GET YOUR API KEY" | widget Turnstile géré |
 | clé | `POST https://keygen.jina.ai/trial` (multipart, `cf-turnstile-response`) | 200 → `api_key` ; 429 → essayer `/empty` |
 | preuve | `POST api.jina.ai/v1/embeddings` (+ rerank) | 200 avec un usage réel = clé active |
 | rotation | sortie fraîche par clé | le quota d'essai est par IP |
@@ -155,7 +155,11 @@ node src/cli.js --help
 
 ## 🛰️ Derrière un proxy
 
-**Requis — les clés sont émises par IP.** Une sortie fraîche par clé est le mécanisme de mise à l'échelle (le quota d'essai est par IP) ; l'outil filtre le pool contre `keygen.jina.ai` et `api.jina.ai` avant une exécution.
+**Optionnel — recommandé à grande échelle (limites par IP, bannissements).** L'outil fonctionne aussi sans proxy.
+
+- **Avec un pool :** passez `--pool <file>` (ou définissez `JINA_PROXIES`) et chaque requête passe par une sortie de cette liste — une ligne morte fait échouer cette tentative et l'outil passe à la suivante (fail-closed tant qu'un pool est fourni ; le pool est re-testé à l'usage).
+- **Sans pool :** le CLI affiche `running WITHOUT a proxy (direct)` et se connecte directement. Rien ne change pour l'inscription, le check-in, l'émission de clés ou la vérification — seul le point de départ des paquets change.
+- Lancez `--screen` dans l'un ou l'autre mode : il teste les sorties dont vous disposez (ou la route directe) contre le fournisseur avant une exécution réelle.
 
 ## 📄 Fichiers
 
@@ -168,13 +172,13 @@ node src/cli.js --help
 
 ## 🔌 Connexion à 9Router
 
-[9Router](https://9router.com) est un routeur auto-hébergé compatible OpenAI :
+[9Router](https://9router.com) est un routeur auto-hébergé, compatible OpenAI :
 
 ```bash
 node src/connect-9router.js --base http://localhost:20128 --password 123456
 ```
 
-Valeurs par défaut : `--prefix jina`, `--base-url https://api.jina.ai/v1`, `--model jina-ai/jina-embeddings-v4`. Les modèles sont servis sous `jina/<model id>`.
+Défauts : `--prefix jina`, `--base-url https://api.jina.ai/v1`, `--model jina-ai/jina-embeddings-v4`. Les modèles sont servis sous `jina/<model id>`.
 
 ## 🔑 Ce qu'une clé vous apporte
 
