@@ -135,7 +135,7 @@ inbox (one address per account)                                  a fresh address
 | --- | --- | --- |
 | page | `jina.ai/reader` → "GET YOUR API KEY" | managed Turnstile widget |
 | key | `POST https://keygen.jina.ai/trial` (multipart, `cf-turnstile-response`) | 200 → `api_key`; 429 → try `/empty` |
-| proof | `POST api.jina.ai/v1/embeddings` (+ rerank) | 200 with real usage = key live |
+| proof | `POST api.jina.ai/v1/embeddings` (+ rerank) | 200 with real usage = key verified |
 | rotate | fresh exit per key | the trial quota is per IP |
 
 ## ⚙️ CLI options

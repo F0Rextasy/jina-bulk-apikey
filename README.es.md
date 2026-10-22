@@ -92,6 +92,7 @@ Superficies complementarias sin clave: `r.jina.ai` (reader, 20 RPM) y `s.jina.ai
 cd jina-bulk-apikey
 printf 'socks5://host:port\n' > proxies.txt   # optional — without it the tool runs direct
 node src/launcher.js        # interactive: mint / verify / screen / settings
+
 # or directly — one Turnstile token per key (see the note below):
 node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
