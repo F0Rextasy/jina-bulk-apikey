@@ -51,6 +51,7 @@ const { execFileSync } = require('child_process');
 
 const ROOT = path.basename(__dirname) === 'src' ? path.resolve(__dirname, '..') : __dirname;
 const KEYS_FILE = path.join(ROOT, 'keys.txt');
+const DEAD_FILE = path.join(ROOT, 'keys-dead.txt');
 const ACCOUNTS_FILE = path.join(ROOT, 'accounts.json');
 const OUT_DIR = path.join(ROOT, 'out');
 
@@ -84,18 +85,20 @@ if (has('help') || has('h')) {
   --conc N         keys in flight at once, max 4                       [1]
   --pool FILE      exit list, one per line   (env JINA_PROXIES) [optional]
   --model ID       embeddings model for the gate       [jina-embeddings-v4]
-  --token T        one Turnstile token per key, comma separated
-  --token-cmd CMD  command that prints one fresh token (run once per key)
+  --auto           solve the Turnstile with the embedded solver (default)
+  --no-auto        disable the embedded solver
+  --dry            resolve the plan, write nothing (no network, no files)
   --verify-only    re-test keys.txt keys
   --screen         only screen the pool
 
 Requests go through the exits in your proxy list when one is provided (--pool or
 the JINA_PROXIES env); without a pool the tool connects DIRECTLY.
 
-Turnstile: Jina's trial endpoint is behind a managed Cloudflare Turnstile. Get a
-token from any browser (open ${READER_URL}, press "GET YOUR API KEY", copy the
-hidden input cf-turnstile-response), pass it with --token, or wire a solver with
---token-cmd. One token is spent per key.
+Turnstile: Jina's trial endpoint is behind a managed Cloudflare Turnstile. By
+default (--auto) the bundled src/solver.js opens ${READER_URL} over the account's
+pinned exit and reads the token — one command, nothing else to run. Advanced
+solver wiring is described in ADVANCED.md; if Chrome is not found, install it
+once or point CHROME_PATH at it. One token is spent per key.
 
 Requests go through your proxy list when one is provided (--pool / env). Without
 a pool the tool connects directly.`);
@@ -113,6 +116,14 @@ const POOL_ARG = arg('pool', process.env.JINA_PROXIES || 'proxies.txt');
 const POOL_FILE = fs.existsSync(path.resolve(POOL_ARG)) ? path.resolve(POOL_ARG) : path.resolve(ROOT, POOL_ARG);
 const TOKENS = String(arg('token', '')).split(',').map((s) => s.trim()).filter(Boolean);
 const TOKEN_CMD = arg('token-cmd', process.env.JINA_TOKEN_CMD || null);
+const AUTO = !has('no-auto'); // the embedded solver is the default path (one command)
+const DRY = has('dry'); // resolve the plan, write nothing, send nothing
+const SITEKEY = arg('sitekey', process.env.JINA_SITEKEY || '0x4AAAAAAAgCxiL0RJqXRtA2');
+/** Lazy require: a checkout without src/solver.js still runs off --token / --token-cmd. */
+let _solver = null;
+const solver = () => (_solver && _solver.solveCaptcha ? _solver : (_solver = require('./solver.js')));
+/** The exit as a proxy string for the solver (null = DIRECT). */
+const exitProxy = (exit) => (!exit ? null : `${exit.protocol}://${exit.auth ? `${exit.auth}@` : ''}${exit.host}:${exit.port}`);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -314,7 +325,8 @@ async function screen(exits) {
   return ok;
 }
 
-function nextToken(i) {
+/** One token per key. Order: --token list → --token-cmd hook → embedded solver (--auto). */
+async function nextToken(i, exit) {
   if (TOKENS.length > i) return TOKENS[i];
   if (TOKEN_CMD) {
     try {
@@ -327,7 +339,11 @@ function nextToken(i) {
       // the token on a labelled line instead of alone.
       const m = line.match(/\d\.[A-Za-z0-9._-]{63,}$/) || line.match(/[A-Za-z0-9_.-]{40,}/) || line.match(/[A-Za-z0-9_-]{40,}/);
       if (m) return m[0];
-    } catch (e) { /* fall through to the error below */ }
+    } catch (e) { /* fall through to the embedded solver below */ }
+  }
+  if (AUTO) {
+    const r = await solver().solveCaptcha({ type: 'turnstile', sitekey: SITEKEY, url: READER_URL, proxy: exitProxy(exit) });
+    if (r && r.token) return r.token;
   }
   return null;
 }
@@ -336,6 +352,11 @@ function nextToken(i) {
 async function mint() {
   const exits = loadPool();
   if (SCREEN) return void (await screen(exits));
+  if (DRY) {
+    console.log('dry run — nothing is written and no request is sent.');
+    console.log(`  count ${COUNT} · conc ${CONC} · model ${MODEL} · exits ${exits.filter(Boolean).length || 'direct'} · solver ${AUTO ? 'embedded src/solver.js (--auto)' : 'off (--no-auto)'}`);
+    return;
+  }
   const accounts = loadAccounts();
   log(`jina · ${COUNT} key(s) · conc ${CONC} · exits ${exits.filter(Boolean).length || 'direct'} from ${path.basename(POOL_FILE)} · keys land in keys.txt`);
   let made = 0;
@@ -344,9 +365,9 @@ async function mint() {
     for (let k = 0; k < CONC && round + k < COUNT; k++) {
       const i = round + k;
       const exit = exits[i % exits.length];
-      const token = nextToken(i);
+      const token = await nextToken(i, exit);
       if (!token) {
-        log(`key ${i + 1}: no Turnstile token — pass --token (one per key) or --token-cmd. See --help.`);
+        log(`key ${i + 1}: no Turnstile token — the embedded solver (--auto) gave nothing; advanced solver flags: see ADVANCED.md.`);
         continue;
       }
       jobs.push((async () => {
@@ -382,6 +403,7 @@ async function mint() {
     if (GAP_MS) await sleep(GAP_MS);
   }
   log(`done — ${made}/${COUNT} key(s) written to ${KEYS_FILE}`);
+  console.log(`__MINT_SUMMARY__ ${JSON.stringify({ requested: COUNT, live: made, keysFile: KEYS_FILE, deadFile: DEAD_FILE })}`);
 }
 
 async function verifyOnly() {
@@ -389,17 +411,21 @@ async function verifyOnly() {
   const keys = readKeys();
   if (!keys.length) { console.log(`no keys in ${KEYS_FILE}`); process.exit(0); }
   let live = 0;
+  const dead = [];
   for (let i = 0; i < keys.length; i++) {
     const exit = exits[i % exits.length];
     try {
       const g = await gate(exit, keys[i]);
       if (g.emb.status === 200) live++;
+      else dead.push({ key: keys[i], why: `embeddings=${g.emb.status}` });
       console.log(`  ${g.emb.status === 200 ? '✔' : '✘'} ${keys[i].slice(0, 10)}… embeddings=${g.emb.status} rerank=${g.rerank ? g.rerank.status : 'n/a'}`);
     } catch (e) {
+      dead.push({ key: keys[i], why: String(e.message).slice(0, 60) });
       console.log(`  ✘ ${keys[i].slice(0, 10)}… ${String(e.message).slice(0, 90)}`);
     }
   }
-  console.log(`verify: ${live}/${keys.length} keys live`);
+  fs.writeFileSync(DEAD_FILE, dead.map((d) => `${d.key}\t# ${d.why}`).join('\n') + (dead.length ? '\n' : ''));
+  console.log(`verify: ${live}/${keys.length} keys live — the ${dead.length} dead one(s) are in ${DEAD_FILE}`);
   process.exit(live === keys.length ? 0 : 1);
 }
 

@@ -14,7 +14,7 @@
   },
   "scripts": {
     "start": "node src/launcher.js",
-    "mint": "node src/cli.js",
+    "mint": "node src/cli.js --auto",
     "9router": "node src/connect-9router.js",
     "omniroute": "node src/connect-omniroute.js"
   },
@@ -29,6 +29,10 @@
   "files": [
     "src",
     "README.md",
-    "LICENSE"
-  ]
+    "LICENSE",
+    "ADVANCED.md"
+  ],
+  "dependencies": {
+    "puppeteer-core": "^24.10.0"
+  }
 }
