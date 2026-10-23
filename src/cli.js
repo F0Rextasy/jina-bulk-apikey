@@ -320,9 +320,12 @@ function nextToken(i) {
     try {
       const out = execFileSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', TOKEN_CMD], { encoding: 'utf8', timeout: 300000, windowsHide: true });
       const line = String(out).split(/\r?\n/).map((s) => s.trim()).filter(Boolean).pop() || '';
-      // Turnstile tokens carry dots ("1.iwHu…"); the char class must include '.' or the
-      // token is truncated to a middle segment and Cloudflare rejects it.
-      const m = line.match(/[A-Za-z0-9_.-]{40,}/);
+      // Turnstile tokens are `<digit>.<body>` and 65-4096 chars (measured
+      // 752/773/794/816/837, always a `1.` prefix). A `{40,}` class without '.'
+      // truncates one to a middle segment and Cloudflare rejects the fragment, so
+      // the strict rule runs first; the loose ones only rescue a solver that prints
+      // the token on a labelled line instead of alone.
+      const m = line.match(/\d\.[A-Za-z0-9._-]{63,}$/) || line.match(/[A-Za-z0-9_.-]{40,}/) || line.match(/[A-Za-z0-9_-]{40,}/);
       if (m) return m[0];
     } catch (e) { /* fall through to the error below */ }
   }
