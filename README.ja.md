@@ -21,7 +21,7 @@
 [![OmniRoute](https://img.shields.io/badge/OmniRoute-connector-8B5CF6?style=for-the-badge)](#-connect-to-omniroute)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
-[🛠 クイックスタート](#-quick-start) · [🎁 無料枠](#-free-tier--how-much-you-get) · [🤖 モデル](#-models--all-30-of-them) · [🧪 API の使い方](#-how-to-use-the-api) · [✅ 検証済み](#-verified-working--every-key-is-tested) · [🧭 仕組み](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [🔌 OmniRoute](#-connect-to-omniroute) · [⚙️ オプション](#️-cli-options) · [🛰️ プロキシ](#️-behind-a-proxy) · [🐞 問題](#-issues)
+[🛠 クイックスタート](#-quick-start) · [🎁 無料枠](#-free-tier--how-much-you-get) · [🤖 モデル](#-models--all-30-of-them) · [🧪 API の使い方](#-how-to-use-the-api) · [✅ 検証済み](#-verified-working--every-key-is-tested) · [🧭 仕組み](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [🔌 OmniRoute](#-connect-to-omniroute) · [⚙️ オプション](#️-cli-options) · [🛰️ プロキシ](#️-behind-a-proxy) · [🐞 イシュー](#-issues)
 
 </div>
 
@@ -35,7 +35,7 @@
 
 ## ✨ これが存在する理由
 
-Jina AI は**アカウント不要でトライアル API キーを配布しています**。reader ページはマネージド Turnstile を実行し、`POST keygen.jina.ai/trial` は `{"api_key":"jina_…"}` を返します（IP ごとのトライアル割り当てが 429 を返す場合でも、`POST keygen.jina.ai/empty` は 0 トークンのキーを発行します）。すべてのキーは匿名の `auto_<uuid>` アカウント上で **10,000,000 トークンのトライアル残高**（trial_end 2036）を持ち、embeddings と rerank の両方がトークン数付きで 200 を返します。1 出口につき 1 キー — これがこのツールがバッチ処理する単位です。
+Jina AI は**アカウント不要でトライアル API キーを配布しています**。reader ページはマネージド Turnstile を実行し、`POST keygen.jina.ai/trial` は `{"api_key":"jina_…"}` を返します（IP ごとのトライアルクォータが 429 を返す場合でも、`POST keygen.jina.ai/empty` は 0 トークンのキーを発行します）。すべてのキーは匿名の `auto_<uuid>` アカウント上で **10,000,000 トークンのトライアル残高**（trial_end 2036）を持ち、embeddings と rerank の両方がトークン数付きで 200 を返します。1 出口につき 1 キー — これがこのツールがバッチ処理する単位です。
 
 ## 🎁 無料枠 — どれだけ得られるか
 
@@ -44,11 +44,11 @@ Jina AI は**アカウント不要でトライアル API キーを配布して�
 | アカウント | なし — キーごとに匿名の `auto_<uuid>`（`email: null`） |
 | トライアル残高 | キーごとに **10,000,000 トークン**（ウォレット `trial_balance`、trial_end 2036-10-19） |
 | ゲート | `keygen.jina.ai/trial` 上のマネージド Cloudflare Turnstile（実行ごとに新しいトークン） |
-| 429 ラダー | IP ごとのトライアル割り当てに達する → `POST keygen.jina.ai/empty` でもキーを発行（トライアルトークン 0） |
+| 429 ラダー | IP ごとのトライアルクォータに到達 → `POST keygen.jina.ai/empty` でもキーを発行（トライアルトークン 0） |
 | レート制限 | キーなし: 20 RPM、無料キー: **500 RPM**（embed/rerank、キーごとに 2M TPM） |
 | キー管理 | `api.jina.ai/api/v1/api_key`（失効）と `cf-turnstile-response` ヘッダー |
 
-> 💡 無料枠は Jina AI が設定するもので、変更される可能性があります。最新の数値は [jina.ai](https://jina.ai) で確認してください — そしてツール自身のゲートに判断を任せてください:
+> 💡 無料枠は Jina AI が設定するもので、変更される可能性があります。最新の数値は [jina.ai](https://jina.ai) で確認してください — そしてツール自身のゲートに判断を委ねてください:
 
 ```bash
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
@@ -65,7 +65,7 @@ node src/cli.js --verify-only     # every key in keys.txt is re-tested with a re
 | `jina-ai/jina-reranker-v3`, `jina-ai/jina-reranker-v3.5` | rerank ライン | カタログ |
 | `jina-ai/jina-ocr-v1`, `jina-ai/ReaderLM-v2` | OCR / reader | カタログ |
 | `jina-ai/jina-clip-v2`, colbert / code-embeddings ライン | embeddings ファミリー | カタログ |
-> ⚠️ **呼び出しの注意点:** `GET /v1/models` は `jina-ai/` オーナープレフィックス付きの id を列挙しますが、API 呼び出しは**短い id** を受け付けます — `{"model":"jina-embeddings-v4"}` は 200 を返し、プレフィックス付きの `jina-ai/jina-embeddings-v4` は **422** を返します（2026-10-19 計測）。
+> ⚠️ **呼び出しの注意点:** `GET /v1/models` は `jina-ai/` オーナープレフィックス付きの id を列挙しますが、API 呼び出しは**短い id** を受け取ります — `{"model":"jina-embeddings-v4"}` は 200 を返し、プレフィックス付きの `jina-ai/jina-embeddings-v4` は **422** を返します（2026-10-19 計測）。
 
 ```bash
 curl https://api.jina.ai/v1/embeddings \
@@ -75,7 +75,7 @@ curl https://api.jina.ai/v1/embeddings \
 
 ## 🧪 API の使い方
 
-ベース URL **`https://api.jina.ai/v1`**。
+ベース URL は **`https://api.jina.ai/v1`**。
 
 ```python
 import requests
@@ -99,21 +99,40 @@ node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
 ```
 
-トライアルエンドポイントはマネージド Cloudflare Turnstile の背後にあるため、CLI はキーごとに 1 つの新しいトークンを必要とします: <https://jina.ai/reader> を開き、**GET YOUR API KEY** を押し、隠し input から `cf-turnstile-response` の値をコピーする（DevTools → Elements）か、stdout にトークンを出力するソルバーを `--token-cmd` に指定します。`keys.txt` は実際の embeddings/rerank が 200 を返した後にのみ書き込まれ、`accounts.json` は user_id とウォレットのスナップショットを保持します。
+トライアルエンドポイントはマネージド Cloudflare Turnstile の背後にあるため、CLI はキーごとに 1 つの新しいトークンを必要とします: <https://jina.ai/reader> を開き、**GET YOUR API KEY** を押し、隠し input から `cf-turnstile-response` の値をコピーする（DevTools → Elements）か、stdout にトークンを出力するソルバーを `--token-cmd` に指定します。`keys.txt` は実際の embeddings/rerank 200 の後にのみ書き込まれ、`accounts.json` は user_id + ウォレットのスナップショットを保持します。
 
 ### 🖱️ ランチャー
 
 ランチャーはプロキシリストと件数を尋ね、それらを記憶し、CLI を実行します — mint、verify、screen exits、settings、help、Connect to 9Router。
 
-## ✅ 検証済みで動作 — すべてのキーがテストされます
+## 🚀 コマンド 1 つ
+
+キャプチャは自動で解決されます — コマンド 1 つで N 個のアカウントを発行し、実際の chat 呼び出しで検証されたキーのみを保持します:
+
+```bash
+npm install                  # once: pulls puppeteer-core
+npm start                    # menu → "1) Mint keys" → "How many keys?" (Enter = 10)
+# or non-interactive:
+node src/cli.js --count N
+```
+
+`--auto` がデフォルトで、何も渡す必要はありません: 埋め込みの `src/solver.js` がアカウント自身の出口経由でヘッド付き Chrome を開き、パネルの Turnstile トークンを自動的に返します。`--dry` は解決されたプランを出力し、**ファイル書き込みもネットワーク呼び出しも行わずに**終了します。
+
+> ⚠️ **利用規約とアカウントのリスク。** これは自動化ツールであり、アカウント販売業者ではありません。一括サインアップとキー発行は完全にあなたの責任です: プロバイダーの利用規約に違反する可能性があり、アドレス、出口、アカウントがブロックされることがあります。自動化が許可されているインフラでのみ使用し、リクエストレートを低く保ってください。
+
+## 🔧 上級者向け（オプション）
+
+独自のソルバーの接続、トークンの手動貼り付け、特定の Chrome をツールに指定する方法は **[ADVANCED.md](ADVANCED.md)** に記載されています。一般的な使い方ではこれらは不要です。
+
+## ✅ 動作検証済み — すべてのキーがテストされています
 
 | チェック | 結果 |
 | --- | --- |
 | `POST keygen.jina.ai/trial`（Turnstile トークン） | **200** `{"api_key":"jina_…"}` — ブラウザフロー、1 回のリフレッシュ後に初回で成功 |
 | `POST keygen.jina.ai/empty`（429 ラダー） | **200** — 0 トークンのキーでも発行される |
-| `POST /v1/embeddings`（`jina-embeddings-v4`、短い id）— 書き込まれる前の**すべての**キーに対して | **200**、トークンがカウントされる |
-| `POST /v1/rerank`（`jina-reranker-v2-base-multilingual`、短い id） | **200**、トークンがカウントされる |
-| `jina-ai/jina-embeddings-v4`（プレフィックス付き id） | **422** — 短い id を使用してください（2026-10-19 計測） |
+| `POST /v1/embeddings`（`jina-embeddings-v4`、短い id）— 書き込まれる前の**すべての**キーに対して | **200**、トークン数カウント |
+| `POST /v1/rerank`（`jina-reranker-v2-base-multilingual`、短い id） | **200**、トークン数カウント |
+| `jina-ai/jina-embeddings-v4`（プレフィックス付き id） | **422** — 短い id を使用（2026-10-19 計測） |
 | ウォレット | `trial_balance=10,000,000`、`trial_end` 2036、`email: null` |
 | チェックに失敗したキー | 書き込まれない — アカウントは `accounts.json` に残る |
 
@@ -143,8 +162,8 @@ inbox (one address per account)                                  a fresh address
 | --- | --- | --- |
 | ページ | `jina.ai/reader` → "GET YOUR API KEY" | マネージド Turnstile ウィジェット |
 | キー | `POST https://keygen.jina.ai/trial`（multipart、`cf-turnstile-response`） | 200 → `api_key`、429 → `/empty` を試す |
-| 証明 | `POST api.jina.ai/v1/embeddings`（+ rerank） | 実際の usage 付きで 200 = キー検証済み |
-| ローテート | キーごとに新しい出口 | トライアル割り当ては IP ごと |
+| 証明 | `POST api.jina.ai/v1/embeddings`（+ rerank） | 実際の usage 付き 200 = キー検証済み |
+| ローテート | キーごとに新しい出口 | トライアルクォータは IP ごと |
 
 ## ⚙️ CLI オプション
 
@@ -159,21 +178,21 @@ node src/cli.js --help
 | 環境変数 | デフォルト | 意味 |
 | --- | --- | --- |
 | `JINA_PROXIES` | `proxies.txt` | オプションの出口プール、1 行につき 1 プロキシ |
-| `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | 実際の検証に使用するモデル |
+| `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | ライブ検証に使用するモデル |
 
 ## 🛰️ プロキシの背後で
 
-**オプション — 規模が大きい場合に推奨（IP ごとの制限、BAN）。** ツールはプロキシなしでも動作します。
+**オプション — 大規模運用では推奨（IP ごとの制限、BAN）。** プロキシなしでもツールは動作します。
 
-- **プールあり:** `--pool <file>` を渡す（または `JINA_PROXIES` を設定する）と、すべてのリクエストがそのリストの出口を経由します — 死んだ回線はその試行を失敗させ、ツールは次の回線に移ります（プールが提供されている間は fail-closed、プールは使用時に再プローブされます）。
-- **プールなし:** CLI は `running WITHOUT a proxy (direct)` と表示し、直接接続します。サインアップ、チェックイン、キー発行、検証について何も変わりません — 変わるのはパケットが出ていく場所だけです。
+- **プールあり:** `--pool <file>` を渡す（または `JINA_PROXIES` を設定する）と、すべてのリクエストがそのリストの出口を経由します — 死んだ回線はその試行を失敗させ、ツールは次の回線に移ります（プールが提供されている間はフェイルクローズ、プールは使用時に再プローブされます）。
+- **プールなし:** CLI は `running WITHOUT a proxy (direct)` と表示し、直接接続します。サインアップ、チェックイン、キー発行、検証のいずれも変わりません — 変わるのはパケットの出発点だけです。
 - どちらのモードでも `--screen` を実行してください: 実際の実行前に、持っている出口（または直接ルート）をプロバイダーに対してテストします。
 
 ## 📄 ファイル
 
 | パス | 内容 |
 | --- | --- |
-| `keys.txt` | 1 行につき 1 つの実際に検証済みのキー — git 管理外 |
+| `keys.txt` | ライブ検証済みのキーを 1 行に 1 つ — git 管理外 |
 | `accounts.json` | user_id / ウォレットスナップショット / キー id |
 | `proxies.txt` | あなたの出口 — git 管理外 |
 | `outputs/` | 実行ログ — git 管理外 |
@@ -206,11 +225,11 @@ node src/connect-omniroute.js --base http://localhost:20128 --password 123456
 | 🎁 プロバイダーが提供するもの | 匿名トライアルキー、10M トライアルトークン、サインアップ不要 |
 | 🔑 1 つのキーで得られるもの | embeddings/rerank で 500 RPM（2M TPM）、`https://api.jina.ai/v1` で 30 個のカタログ id |
 | 🌐 API の形 | `POST https://api.jina.ai/v1/embeddings` · `POST /v1/rerank` |
-| 🔒 あなたのデータ | 接続されるのは `jina.ai` / `keygen.jina.ai` / `api.jina.ai` のみ |
+| 🔒 あなたのデータ | 接続先は `jina.ai` / `keygen.jina.ai` / `api.jina.ai` のみ |
 
-## 🐞 問題
+## 🐞 イシュー
 
-Jina が keygen エンドポイント、Turnstile サイトキー、またはトライアルポリシーを変更した場合、ツールはそこで停止し、その旨を報告します。コマンドと正確な出力を添えて **[issue を作成してください](../../issues)**。
+Jina が keygen エンドポイント、Turnstile サイトキー、またはトライアルポリシーを変更した場合、ツールはそこで停止し、その旨を報告します。コマンドと正確な出力を添えて **[イシューを開いてください](../../issues)**。
 
 ## 📄 ライセンス
 

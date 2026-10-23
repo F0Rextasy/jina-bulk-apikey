@@ -104,6 +104,25 @@ The trial endpoint is behind a managed Cloudflare Turnstile, so the CLI needs on
 
 The launcher asks for the proxy list and count, remembers them, and runs the CLI — mint, verify, screen exits, settings, help, Connect to 9Router.
 
+## 🚀 One command
+
+The captcha is solved for you — one command mints N accounts and keeps only the keys a live chat call verified:
+
+```bash
+npm install                  # once: pulls puppeteer-core
+npm start                    # menu → "1) Mint keys" → "How many keys?" (Enter = 10)
+# or non-interactive:
+node src/cli.js --count N
+```
+
+`--auto` is the default and nothing has to be passed: the embedded `src/solver.js` opens a headed Chrome over the account's own exit and returns the panel's Turnstile token automatically. `--dry` prints the resolved plan and exits with **no file written and no network call**.
+
+> ⚠️ **Terms & account risk.** This is an automation tool, not an account vendor. Bulk sign-ups and key minting are entirely your responsibility: they may breach the provider's Terms of Service and can get addresses, exits or accounts blocked. Use it only on infrastructure you are allowed to automate, and keep the request rate low.
+
+## 🔧 Advanced (optional)
+
+Wiring your own solver, pasting a token by hand or pointing the tool at a specific Chrome are documented in **[ADVANCED.md](ADVANCED.md)**. The common path needs none of it.
+
 ## ✅ Verified working — every key is tested
 
 | Check | Result |

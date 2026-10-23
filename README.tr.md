@@ -11,7 +11,7 @@
 
 # jina-bulk-apikey
 
-**Jina AI deneme API anahtarlarını toplu olarak oluşturun — embeddings, reranker ve reader yüzeyleri — bir 9Router bağlayıcısıyla.**
+**Jina AI deneme API anahtarlarını toplu olarak verin — embeddings, reranker ve reader yüzeyleri — bir 9Router bağlayıcısıyla.**
 
 [![Node](https://img.shields.io/badge/Node-%E2%89%A518-3DA639?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-blue?style=for-the-badge)](#)
@@ -35,9 +35,9 @@
 
 ## ✨ Bu neden var
 
-Jina AI, **hiç hesap gerektirmeyen deneme API anahtarları** dağıtır: reader sayfası yönetilen bir Turnstile çalıştırır ve `POST keygen.jina.ai/trial` şu yanıtı döndürür: `{"api_key":"jina_…"}` (IP başına deneme kotası 429 döndürdüğünde, `POST keygen.jina.ai/empty` yine de 0 token'lı bir anahtar üretir). Her anahtar, anonim bir `auto_<uuid>` hesabında **10.000.000 token'lık deneme bakiyesi** (trial_end 2036) taşır ve hem embeddings hem de rerank, token sayılarıyla birlikte 200 yanıtı verir. Çıkış başına bir anahtar — bu aracın toplu olarak işlediği birim budur.
+Jina AI, **hiç hesap gerektirmeden deneme API anahtarları** dağıtır: reader sayfası yönetilen bir Turnstile çalıştırır ve `POST keygen.jina.ai/trial` şu yanıtı döner: `{"api_key":"jina_…"}` (IP başına deneme kotası 429 döndüğünde, `POST keygen.jina.ai/empty` yine de 0 token'lı bir anahtar üretir). Her anahtar, anonim bir `auto_<uuid>` hesabında **10.000.000 token'lık deneme bakiyesi** (trial_end 2036) taşır ve hem embeddings hem de rerank, token sayılarıyla birlikte 200 yanıtı verir. Çıkış başına bir anahtar — bu aracın toplu olarak işlediği birim budur.
 
-## 🎁 Ücretsiz katman — ne kadar alıyorsunuz
+## 🎁 Ücretsiz katman — ne kadar elde edersiniz
 
 | Ne | Değer |
 | --- | --- |
@@ -45,7 +45,7 @@ Jina AI, **hiç hesap gerektirmeyen deneme API anahtarları** dağıtır: reader
 | Deneme bakiyesi | anahtar başına **10.000.000 token** (cüzdan `trial_balance`, trial_end 2036-10-19) |
 | Kapı | `keygen.jina.ai/trial` üzerinde yönetilen Cloudflare Turnstile (her çalıştırmada taze token) |
 | 429 merdiveni | IP başına deneme kotası doldu → `POST keygen.jina.ai/empty` yine de bir anahtar verir (0 deneme token'ı) |
-| Hız limitleri | anahtarsız: 20 RPM; ücretsiz anahtar: **500 RPM** (embed/rerank; anahtar başına 2M TPM) |
+| Hız limitleri | anahtar yok: 20 RPM; ücretsiz anahtar: **500 RPM** (embed/rerank; anahtar başına 2M TPM) |
 | Anahtar yönetimi | `api.jina.ai/api/v1/api_key` (iptal) ve bir `cf-turnstile-response` başlığı |
 
 > 💡 Ücretsiz katman Jina AI tarafından belirlenir ve değişebilir. Güncel sayıları [jina.ai](https://jina.ai) adresinden kontrol edin — ve kararı aracın kendi kapısına bırakın:
@@ -54,7 +54,7 @@ Jina AI, **hiç hesap gerektirmeyen deneme API anahtarları** dağıtır: reader
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
 ```
 
-## 🤖 Modeller — 30'unun tamamı
+## 🤖 Modeller — 30 tanesinin tamamı
 
 `GET https://api.jina.ai/v1/models` herkese açıktır ve **30 id** döndürdü, bunlar arasında:
 
@@ -99,11 +99,30 @@ node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
 ```
 
-Deneme uç noktası yönetilen bir Cloudflare Turnstile arkasındadır, bu nedenle CLI'nin anahtar başına bir taze token'a ihtiyacı vardır: <https://jina.ai/reader> adresini açın, **GET YOUR API KEY** düğmesine basın ve gizli input'tan `cf-turnstile-response` değerini kopyalayın (DevTools → Elements) veya `--token-cmd` seçeneğini stdout'a bir token yazdıran bir çözücüye yönlendirin. `keys.txt` yalnızca canlı bir embeddings/rerank 200 yanıtından sonra yazılır; `accounts.json` user_id + cüzdan anlık görüntüsünü saklar.
+Deneme uç noktası yönetilen bir Cloudflare Turnstile arkasındadır, bu yüzden CLI anahtar başına bir taze token gerektirir: <https://jina.ai/reader> adresini açın, **GET YOUR API KEY** düğmesine basın ve gizli input'tan `cf-turnstile-response` değerini kopyalayın (DevTools → Elements) veya `--token-cmd` seçeneğini stdout'a bir token yazdıran bir çözücüye yönlendirin. `keys.txt` yalnızca canlı bir embeddings/rerank 200 yanıtından sonra yazılır; `accounts.json` user_id + cüzdan anlık görüntüsünü saklar.
 
 ### 🖱️ Başlatıcı
 
 Başlatıcı proxy listesini ve sayıyı sorar, bunları hatırlar ve CLI'yi çalıştırır — mint, verify, screen exits, settings, help, Connect to 9Router.
+
+## 🚀 Tek komut
+
+Captcha sizin için çözülür — tek bir komut N hesap üretir ve yalnızca canlı bir chat çağrısının doğruladığı anahtarları saklar:
+
+```bash
+npm install                  # once: pulls puppeteer-core
+npm start                    # menu → "1) Mint keys" → "How many keys?" (Enter = 10)
+# or non-interactive:
+node src/cli.js --count N
+```
+
+`--auto` varsayılandır ve hiçbir şey geçirilmesi gerekmez: gömülü `src/solver.js`, hesabın kendi çıkışı üzerinden başsız olmayan bir Chrome açar ve panelin Turnstile token'ını otomatik olarak döndürür. `--dry`, çözümlenen planı yazdırır ve **hiçbir dosya yazmadan ve hiçbir ağ çağrısı yapmadan** çıkar.
+
+> ⚠️ **Şartlar ve hesap riski.** Bu bir otomasyon aracıdır, hesap satıcısı değildir. Toplu kayıtlar ve anahtar üretimi tamamen sizin sorumluluğunuzdadır: sağlayıcının Hizmet Şartlarını ihlal edebilir ve adreslerin, çıkışların veya hesapların engellenmesine yol açabilir. Yalnızca otomatikleştirmeye izin verilen altyapıda kullanın ve istek hızını düşük tutun.
+
+## 🔧 Gelişmiş (isteğe bağlı)
+
+Kendi çözücünüzü bağlamak, elle token yapıştırmak veya aracı belirli bir Chrome'a yönlendirmek **[ADVANCED.md](ADVANCED.md)** dosyasında belgelenmiştir. Yaygın yol bunların hiçbirine ihtiyaç duymaz.
 
 ## ✅ Çalıştığı doğrulandı — her anahtar test edilir
 
@@ -158,15 +177,15 @@ node src/cli.js --help
 
 | Env | Varsayılan | Anlamı |
 | --- | --- | --- |
-| `JINA_PROXIES` | `proxies.txt` | isteğe bağlı çıkış havuzu, her satırda bir proxy |
+| `JINA_PROXIES` | `proxies.txt` | isteğe bağlı çıkış havuzu, proxy başına bir satır |
 | `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | canlı doğrulama için model |
 
 ## 🛰️ Proxy arkasında
 
 **İsteğe bağlı — ölçekte önerilir (IP başına limitler, yasaklar).** Araç proxy olmadan da çalışır.
 
-- **Havuzla:** `--pool <file>` geçin (veya `JINA_PROXIES` ayarlayın) ve her istek bu listeden bir çıkış üzerinden gider — ölü bir hat o denemeyi başarısız kılar ve araç bir sonrakine geçer (bir havuz sağlandığında fail-closed; havuz kullanım sırasında yeniden yoklanır).
-- **Havuzsuz:** CLI `running WITHOUT a proxy (direct)` yazdırır ve doğrudan bağlanır. Kayıt, check-in, anahtar üretimi veya doğrulama konusunda hiçbir şey değişmez — yalnızca paketlerin nereden çıktığı değişir.
+- **Havuzla:** `--pool <file>` geçirin (veya `JINA_PROXIES` ayarlayın) ve her istek o listeden bir çıkış üzerinden gider — ölü bir hat o denemeyi başarısız kılar ve araç bir sonrakine geçer (havuz sağlandığında fail-closed; havuz kullanım sırasında yeniden yoklanır).
+- **Havuz olmadan:** CLI `running WITHOUT a proxy (direct)` yazdırır ve doğrudan bağlanır. Kayıt, check-in, anahtar üretimi veya doğrulama konusunda hiçbir şey değişmez — yalnızca paketlerin nereden çıktığı değişir.
 - Her iki modda da `--screen` çalıştırın: gerçek bir çalıştırmadan önce sahip olduğunuz çıkışları (veya doğrudan rotayı) sağlayıcıya karşı test eder.
 
 ## 📄 Dosyalar
@@ -180,7 +199,7 @@ node src/cli.js --help
 
 ## 🔌 9Router'a bağlanın
 
-[9Router](https://9router.com) kendi kendine barındırılan, OpenAI uyumlu bir yönlendiricidir:
+[9Router](https://9router.com) kendi kendine barındırılan, OpenAI uyumlu bir router'dır:
 
 ```bash
 node src/connect-9router.js --base http://localhost:20128 --password 123456
@@ -190,7 +209,7 @@ Varsayılanlar: `--prefix jina`, `--base-url https://api.jina.ai/v1`, `--model j
 
 ## 🔌 OmniRoute'a bağlanın
 
-[OmniRoute](https://omniroute.online) kendi kendine barındırılan, OpenAI uyumlu bir yönlendiricidir:
+[OmniRoute](https://omniroute.online) kendi kendine barındırılan, OpenAI uyumlu bir router'dır:
 
 ```bash
 node src/connect-omniroute.js --base http://localhost:20128 --password 123456
@@ -218,6 +237,6 @@ MIT © 2026 — bkz. [LICENSE](LICENSE).
 
 <div align="center">
 
-**[MIT](LICENSE)** © 2026 jina-bulk-apikey katkıda bulunanlar
+**[MIT](LICENSE)** © 2026 jina-bulk-apikey contributors
 
 </div>

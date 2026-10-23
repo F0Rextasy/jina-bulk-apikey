@@ -126,7 +126,7 @@ const solver = () => (_solver && _solver.solveCaptcha ? _solver : (_solver = req
 const exitProxy = (exit) => (!exit ? null : `${exit.protocol}://${exit.auth ? `${exit.auth}@` : ''}${exit.host}:${exit.port}`);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-fs.mkdirSync(OUT_DIR, { recursive: true });
+if (!DRY) fs.mkdirSync(OUT_DIR, { recursive: true });
 const log = (...a) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...a);
 
 // ------------------------------------------------------------------- proxy
