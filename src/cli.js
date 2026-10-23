@@ -320,7 +320,9 @@ function nextToken(i) {
     try {
       const out = execFileSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', TOKEN_CMD], { encoding: 'utf8', timeout: 300000, windowsHide: true });
       const line = String(out).split(/\r?\n/).map((s) => s.trim()).filter(Boolean).pop() || '';
-      const m = line.match(/[A-Za-z0-9_-]{40,}/);
+      // Turnstile tokens carry dots ("1.iwHu…"); the char class must include '.' or the
+      // token is truncated to a middle segment and Cloudflare rejects it.
+      const m = line.match(/[A-Za-z0-9_.-]{40,}/);
       if (m) return m[0];
     } catch (e) { /* fall through to the error below */ }
   }
