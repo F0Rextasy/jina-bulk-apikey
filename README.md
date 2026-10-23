@@ -21,7 +21,7 @@
 [![OmniRoute](https://img.shields.io/badge/OmniRoute-connector-8B5CF6?style=for-the-badge)](#-connect-to-omniroute)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
-[🛠 Quick start](#-quick-start) · [🎁 Free tier](#-free-tier--how-much-you-get) · [🤖 Models](#-models--all-30-of-them) · [🧪 Use the API](#-how-to-use-the-api) · [✅ Verified](#-verified-working--every-key-is-tested) · [🧭 How it works](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ Options](#️-cli-options) · [🛰️ Proxies](#️-behind-a-proxy) · [🐞 Issues](#-issues)
+[🛠 Quick start](#-quick-start) · [🎁 Free tier](#-free-tier--how-much-you-get) · [🤖 Models](#-models--all-30-of-them) · [🧪 Use the API](#-how-to-use-the-api) · [✅ Verified](#-verified-working--every-key-is-tested) · [🧭 How it works](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [🔌 OmniRoute](#-connect-to-omniroute) · [⚙️ Options](#️-cli-options) · [🛰️ Proxies](#️-behind-a-proxy) · [🐞 Issues](#-issues)
 
 </div>
 
@@ -106,11 +106,6 @@ The launcher asks for the proxy list and count, remembers them, and runs the CLI
 
 ## ✅ Verified working — every key is tested
 
-> **Quality gates.** Every key here passed a live `chat-200` before it was written to `keys.txt`
-> (dead keys are never shipped). Router combos follow the same rule at the model level: an entry is
-> added **only if the model answers `chat-200` and can call tools** — a model without tool support,
-> a dead key or a dead provider is dropped instead of added. Works with **9Router and OmniRoute**.
-
 | Check | Result |
 | --- | --- |
 | `POST keygen.jina.ai/trial` (Turnstile token) | **200** `{"api_key":"jina_…"}` — browser flow, first try after one refresh |
@@ -125,6 +120,12 @@ The launcher asks for the proxy list and count, remembers them, and runs the CLI
 node src/cli.js --verify-only
 node src/cli.js --screen
 ```
+
+> **Quality gates.** Every key here passed a live `chat-200` before it was written to `keys.txt`
+> (dead keys are never shipped). Router combos follow the same rule at the model level: an entry is
+> added **only if the model answers `chat-200` and can call tools** — a model without tool support,
+> a dead key or a dead provider is dropped instead of added. Re-run the verify step any time;
+> failures are reported, never hidden.
 
 ## 🧭 How it works
 
@@ -156,7 +157,7 @@ node src/cli.js --help
 
 | Env | Default | Meaning |
 | --- | --- | --- |
-| `JINA_PROXIES` | `proxies.txt` | exit pool, one line per proxy |
+| `JINA_PROXIES` | `proxies.txt` | optional exit pool, one line per proxy |
 | `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | model for the live verification |
 
 ## 🛰️ Behind a proxy
@@ -195,6 +196,7 @@ node src/connect-omniroute.js --base http://localhost:20128 --password 123456
 ```
 
 Defaults: `--prefix jina`, `--base-url https://api.jina.ai/v1`, `--model jina-ai/jina-embeddings-v4`. Models are served as `jina/<model id>`.
+
 ## 🔑 What one key gets you
 
 | | |

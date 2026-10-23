@@ -21,7 +21,7 @@
 [![OmniRoute](https://img.shields.io/badge/OmniRoute-connector-8B5CF6?style=for-the-badge)](#-connect-to-omniroute)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
-[🛠 快速开始](#-quick-start) · [🎁 免费额度](#-free-tier--how-much-you-get) · [🤖 模型](#-models--all-30-of-them) · [🧪 使用 API](#-how-to-use-the-api) · [✅ 已验证](#-verified-working--every-key-is-tested) · [🧭 工作原理](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ 选项](#️-cli-options) · [🛰️ 代理](#️-behind-a-proxy) · [🐞 问题反馈](#-issues)
+[🛠 快速开始](#-quick-start) · [🎁 免费额度](#-free-tier--how-much-you-get) · [🤖 模型](#-models--all-30-of-them) · [🧪 使用 API](#-how-to-use-the-api) · [✅ 已验证](#-verified-working--every-key-is-tested) · [🧭 工作原理](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [🔌 OmniRoute](#-connect-to-omniroute) · [⚙️ 选项](#️-cli-options) · [🛰️ 代理](#️-behind-a-proxy) · [🐞 问题反馈](#-issues)
 
 </div>
 
@@ -35,7 +35,7 @@
 
 ## ✨ 为什么会有这个项目
 
-Jina AI **无需任何账户**即可发放试用 API 密钥：reader 页面运行一个托管式 Turnstile，`POST keygen.jina.ai/trial` 返回 `{"api_key":"jina_…"}`（当每 IP 试用配额返回 429 时，`POST keygen.jina.ai/empty` 仍会签发一个 0 token 的密钥）。每个密钥在匿名 `auto_<uuid>` 账户下都带有 **10,000,000 token 的试用余额**（trial_end 2036），并且 embeddings 和 rerank 都会返回 200 及 token 计数。每个出口一个密钥 —— 这就是本工具批量处理的单位。
+Jina AI **无需任何账户即可发放试用 API 密钥**：reader 页面运行托管的 Turnstile，`POST keygen.jina.ai/trial` 返回 `{"api_key":"jina_…"}`（当每 IP 的试用配额返回 429 时，`POST keygen.jina.ai/empty` 仍会签发一个 0 token 的密钥）。每个密钥在匿名 `auto_<uuid>` 账户上带有 **10,000,000 token 的试用余额**（trial_end 2036），并且 embeddings 和 rerank 都返回 200 及 token 计数。每个出口一个密钥 —— 这就是本工具批量处理的单位。
 
 ## 🎁 免费额度 —— 你能获得多少
 
@@ -43,12 +43,12 @@ Jina AI **无需任何账户**即可发放试用 API 密钥：reader 页面运�
 | --- | --- |
 | 账户 | 无 —— 每个密钥对应匿名 `auto_<uuid>`（`email: null`） |
 | 试用余额 | 每个密钥 **10,000,000 token**（钱包 `trial_balance`，trial_end 2036-10-19） |
-| 门禁 | `keygen.jina.ai/trial` 上的托管式 Cloudflare Turnstile（每次运行使用全新 token） |
+| 关卡 | `keygen.jina.ai/trial` 上的托管 Cloudflare Turnstile（每次运行使用全新 token） |
 | 429 阶梯 | 触发每 IP 试用配额 → `POST keygen.jina.ai/empty` 仍会签发密钥（0 试用 token） |
 | 速率限制 | 无密钥：20 RPM；免费密钥：**500 RPM**（embed/rerank；每密钥 2M TPM） |
 | 密钥管理 | `api.jina.ai/api/v1/api_key`（吊销），需带 `cf-turnstile-response` 请求头 |
 
-> 💡 免费额度由 Jina AI 设定，可能会变化。请在 [jina.ai](https://jina.ai) 查看实时数值 —— 并让工具自身的门禁来判定：
+> 💡 免费额度由 Jina AI 设定，可能发生变化。请到 [jina.ai](https://jina.ai) 查看实时数字 —— 并让工具自身的关卡来决定：
 
 ```bash
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
@@ -65,7 +65,7 @@ node src/cli.js --verify-only     # every key in keys.txt is re-tested with a re
 | `jina-ai/jina-reranker-v3`, `jina-ai/jina-reranker-v3.5` | rerank 系列 | 目录 |
 | `jina-ai/jina-ocr-v1`, `jina-ai/ReaderLM-v2` | OCR / reader | 目录 |
 | `jina-ai/jina-clip-v2`, colbert / code-embeddings 系列 | embeddings 家族 | 目录 |
-> ⚠️ **调用陷阱：** `GET /v1/models` 列出的 id 带有 `jina-ai/` 所有者前缀，但 API 调用使用的是**短 id** —— `{"model":"jina-embeddings-v4"}` 返回 200，而带前缀的 `jina-ai/jina-embeddings-v4` 返回 **422**（实测于 2026-10-19）。
+> ⚠️ **调用陷阱：** `GET /v1/models` 列出的 id 带有 `jina-ai/` 所有者前缀，但 API 调用接受的是**短 id** —— `{"model":"jina-embeddings-v4"}` 返回 200，带前缀的 `jina-ai/jina-embeddings-v4` 返回 **422**（实测于 2026-10-19）。
 
 ```bash
 curl https://api.jina.ai/v1/embeddings \
@@ -99,18 +99,18 @@ node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
 ```
 
-试用端点位于托管式 Cloudflare Turnstile 之后，因此 CLI 每个密钥需要一个全新 token：打开 <https://jina.ai/reader>，点击 **GET YOUR API KEY**，然后从隐藏输入框中复制 `cf-turnstile-response` 值（DevTools → Elements），或者将 `--token-cmd` 指向一个会向 stdout 打印 token 的求解器。`keys.txt` 仅在实时 embeddings/rerank 返回 200 后才会写入；`accounts.json` 保存 user_id + 钱包快照。
+试用端点位于托管的 Cloudflare Turnstile 之后，因此 CLI 每个密钥需要一个全新的 token：打开 <https://jina.ai/reader>，点击 **GET YOUR API KEY**，从隐藏输入框中复制 `cf-turnstile-response` 值（DevTools → Elements），或将 `--token-cmd` 指向一个在 stdout 上打印 token 的求解器。只有在实时 embeddings/rerank 返回 200 之后才会写入 `keys.txt`；`accounts.json` 保存 user_id + 钱包快照。
 
 ### 🖱️ 启动器
 
-启动器会询问代理列表和数量，记住它们，并运行 CLI —— 签发、验证、筛选出口、设置、帮助、连接到 9Router。
+启动器会询问代理列表和数量，记住它们，并运行 CLI —— mint、verify、screen exits、settings、help、Connect to 9Router。
 
 ## ✅ 已验证可用 —— 每个密钥都经过测试
 
 | 检查 | 结果 |
 | --- | --- |
 | `POST keygen.jina.ai/trial`（Turnstile token） | **200** `{"api_key":"jina_…"}` —— 浏览器流程，刷新一次后首次尝试即成功 |
-| `POST keygen.jina.ai/empty`（429 阶梯） | **200** —— 0 token 的密钥仍会签发 |
+| `POST keygen.jina.ai/empty`（429 阶梯） | **200** —— 0 token 密钥仍会签发 |
 | `POST /v1/embeddings`（`jina-embeddings-v4`，短 id）—— 对**每个**密钥在写入前执行 | **200**，已统计 token |
 | `POST /v1/rerank`（`jina-reranker-v2-base-multilingual`，短 id） | **200**，已统计 token |
 | `jina-ai/jina-embeddings-v4`（带前缀 id） | **422** —— 请使用短 id（实测于 2026-10-19） |
@@ -121,6 +121,11 @@ node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 node src/cli.js --verify-only
 node src/cli.js --screen
 ```
+
+> **质量关卡。** 这里的每个密钥在写入 `keys.txt` 之前都通过了实时 `chat-200`
+> （绝不提供失效密钥）。Router 组合在模型层面遵循同样的规则：只有当模型返回 `chat-200`
+> **且能调用工具**时才会添加条目 —— 不支持工具的模型、失效的密钥或失效的提供商会
+> 被丢弃而不是添加。随时可重新运行验证步骤；失败会被报告，绝不隐藏。
 
 ## 🧭 工作原理
 
@@ -135,9 +140,9 @@ inbox (one address per account)                                  a fresh address
 
 | 步骤 | 调用 | 说明 |
 | --- | --- | --- |
-| 页面 | `jina.ai/reader` → "GET YOUR API KEY" | 托管式 Turnstile 组件 |
+| 页面 | `jina.ai/reader` → "GET YOUR API KEY" | 托管 Turnstile 组件 |
 | 密钥 | `POST https://keygen.jina.ai/trial`（multipart，`cf-turnstile-response`） | 200 → `api_key`；429 → 尝试 `/empty` |
-| 证明 | `POST api.jina.ai/v1/embeddings`（+ rerank） | 200 且带真实用量 = 密钥可用 |
+| 证明 | `POST api.jina.ai/v1/embeddings`（+ rerank） | 200 且带真实 usage = 密钥已验证 |
 | 轮换 | 每个密钥使用全新出口 | 试用配额按 IP 计算 |
 
 ## ⚙️ CLI 选项
@@ -152,22 +157,22 @@ node src/cli.js --help
 
 | 环境变量 | 默认值 | 含义 |
 | --- | --- | --- |
-| `JINA_PROXIES` | `proxies.txt` | 出口池，每行一个代理 |
+| `JINA_PROXIES` | `proxies.txt` | 可选出口池，每行一个代理 |
 | `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | 用于实时验证的模型 |
 
-## 🛰️ 在代理之后
+## 🛰️ 代理之后
 
 **可选 —— 大规模使用时推荐（每 IP 限制、封禁）。** 本工具在没有代理的情况下也能工作。
 
 - **有代理池时：** 传入 `--pool <file>`（或设置 `JINA_PROXIES`），每个请求都会经过该列表中的一个出口 —— 失效线路会使该次尝试失败，工具会转向下一个（提供代理池时采用故障关闭策略；代理池在使用时会重新探测）。
-- **无代理池时：** CLI 会打印 `running WITHOUT a proxy (direct)` 并直接连接。注册、签到、密钥签发或验证都不会有任何变化 —— 只是数据包的发出位置不同。
-- 对任一模式运行 `--screen`：它会在真实运行前，针对提供商测试你拥有的出口（或直连路由）。
+- **无代理池时：** CLI 会打印 `running WITHOUT a proxy (direct)` 并直接连接。注册、签到、密钥签发或验证都不会有任何变化 —— 只是数据包发出的位置不同。
+- 对任一模式运行 `--screen`：它会在真实运行之前，针对提供商测试你拥有的出口（或直连路由）。
 
 ## 📄 文件
 
 | 路径 | 内容 |
 | --- | --- |
-| `keys.txt` | 每行一个经实时验证的密钥 —— 已被 git 忽略 |
+| `keys.txt` | 每行一个实时验证的密钥 —— 已被 git 忽略 |
 | `accounts.json` | user_id / 钱包快照 / 密钥 id |
 | `proxies.txt` | 你的出口 —— 已被 git 忽略 |
 | `outputs/` | 运行日志 —— 已被 git 忽略 |
@@ -191,6 +196,7 @@ node src/connect-omniroute.js --base http://localhost:20128 --password 123456
 ```
 
 默认值：`--prefix jina`、`--base-url https://api.jina.ai/v1`、`--model jina-ai/jina-embeddings-v4`。模型以 `jina/<model id>` 形式提供。
+
 ## 🔑 一个密钥能给你什么
 
 | | |
@@ -199,11 +205,11 @@ node src/connect-omniroute.js --base http://localhost:20128 --password 123456
 | 🎁 提供商提供什么 | 匿名试用密钥，10M 试用 token，无需注册 |
 | 🔑 一个密钥能给你什么 | embeddings/rerank 500 RPM（2M TPM），`https://api.jina.ai/v1` 上 30 个目录 id |
 | 🌐 API 形态 | `POST https://api.jina.ai/v1/embeddings` · `POST /v1/rerank` |
-| 🔒 你的数据 | 仅会联系 `jina.ai` / `keygen.jina.ai` / `api.jina.ai` |
+| 🔒 你的数据 | 仅联系 `jina.ai` / `keygen.jina.ai` / `api.jina.ai` |
 
 ## 🐞 问题反馈
 
-如果 Jina 更改了 keygen 端点、Turnstile sitekey 或试用政策，工具会在此处停止并说明原因。请附上命令和确切输出 **[提交 issue](../../issues)**。
+如果 Jina 更改了 keygen 端点、Turnstile sitekey 或试用政策，工具会在此处停止并说明原因。请**[提交 issue](../../issues)**，附上命令和确切输出。
 
 ## 📄 许可证
 

@@ -21,7 +21,7 @@
 [![OmniRoute](https://img.shields.io/badge/OmniRoute-connector-8B5CF6?style=for-the-badge)](#-connect-to-omniroute)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
-[🛠 Быстрый старт](#-quick-start) · [🎁 Бесплатный тариф](#-free-tier--how-much-you-get) · [🤖 Модели](#-models--all-30-of-them) · [🧪 Использование API](#-how-to-use-the-api) · [✅ Проверено](#-verified-working--every-key-is-tested) · [🧭 Как это работает](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ Опции](#️-cli-options) · [🛰️ Прокси](#️-behind-a-proxy) · [🐞 Проблемы](#-issues)
+[🛠 Быстрый старт](#-quick-start) · [🎁 Бесплатный тариф](#-free-tier--how-much-you-get) · [🤖 Модели](#-models--all-30-of-them) · [🧪 Использование API](#-how-to-use-the-api) · [✅ Проверено](#-verified-working--every-key-is-tested) · [🧭 Как это работает](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [🔌 OmniRoute](#-connect-to-omniroute) · [⚙️ Опции](#️-cli-options) · [🛰️ Прокси](#️-behind-a-proxy) · [🐞 Проблемы](#-issues)
 
 </div>
 
@@ -35,7 +35,7 @@
 
 ## ✨ Зачем это нужно
 
-Jina AI выдаёт **пробные API-ключи вообще без аккаунта**: страница ридера запускает управляемый Turnstile, и `POST keygen.jina.ai/trial` возвращает `{"api_key":"jina_…"}` (когда квота проб на IP отвечает 429, `POST keygen.jina.ai/empty` всё равно выпускает ключ с 0 токенов). Каждый ключ несёт **пробный баланс в 10 000 000 токенов** (trial_end 2036) на анонимном аккаунте `auto_<uuid>`, и как эмбеддинги, так и реранк отвечают 200 с подсчётом токенов. Один ключ на один выход — именно эту единицу инструмент и пакетирует.
+Jina AI выдаёт **пробные API-ключи вообще без аккаунта**: страница ридера запускает управляемый Turnstile, и `POST keygen.jina.ai/trial` возвращает `{"api_key":"jina_…"}` (когда пробная квота на IP отвечает 429, `POST keygen.jina.ai/empty` всё равно выпускает ключ с 0 токенов). Каждый ключ несёт **пробный баланс в 10 000 000 токенов** (trial_end 2036) на анонимном аккаунте `auto_<uuid>`, и как эмбеддинги, так и реранк отвечают 200 с подсчётом токенов. Один ключ на один выход — именно эту единицу и пакетирует данный инструмент.
 
 ## 🎁 Бесплатный тариф — сколько вы получаете
 
@@ -44,11 +44,11 @@ Jina AI выдаёт **пробные API-ключи вообще без акк�
 | Аккаунт | нет — анонимный `auto_<uuid>` на каждый ключ (`email: null`) |
 | Пробный баланс | **10 000 000 токенов** на ключ (кошелёк `trial_balance`, trial_end 2036-10-19) |
 | Защита | управляемый Cloudflare Turnstile на `keygen.jina.ai/trial` (свежий токен на каждый запуск) |
-| Лестница 429 | исчерпана квота проб на IP → `POST keygen.jina.ai/empty` всё равно выдаёт ключ (0 пробных токенов) |
-| Лимиты | без ключа: 20 RPM; бесплатный ключ: **500 RPM** (embed/rerank; 2M TPM на ключ) |
+| Лестница 429 | исчерпана пробная квота на IP → `POST keygen.jina.ai/empty` всё равно выдаёт ключ (0 пробных токенов) |
+| Лимиты | без ключа: 20 RPM; с бесплатным ключом: **500 RPM** (embed/rerank; 2M TPM на ключ) |
 | Управление ключами | `api.jina.ai/api/v1/api_key` (отзыв) с заголовком `cf-turnstile-response` |
 
-> 💡 Бесплатный тариф устанавливает Jina AI, и он может измениться. Проверяйте актуальные цифры на [jina.ai](https://jina.ai) — и пусть решение принимает собственный гейт инструмента:
+> 💡 Бесплатный тариф устанавливается Jina AI и может измениться. Проверяйте актуальные цифры на [jina.ai](https://jina.ai) — и пусть решает собственный гейт инструмента:
 
 ```bash
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
@@ -56,15 +56,15 @@ node src/cli.js --verify-only     # every key in keys.txt is re-tested with a re
 
 ## 🤖 Модели — все 30
 
-`GET https://api.jina.ai/v1/models` публичен и вернул **30 идентификаторов**, включая:
+`GET https://api.jina.ai/v1/models` публичен и вернул **30 id**, включая:
 
 | ID модели | Поверхность | Проверено |
 | --- | --- | --- |
 | `jina-ai/jina-embeddings-v4` | `POST /v1/embeddings` | **200** (tokens=3) |
 | `jina-ai/jina-reranker-v2-base-multilingual` | `POST /v1/rerank` | **200** (tokens=17) |
-| `jina-ai/jina-reranker-v3`, `jina-ai/jina-reranker-v3.5` | линейка rerank | каталог |
+| `jina-ai/jina-reranker-v3`, `jina-ai/jina-reranker-v3.5` | линия rerank | каталог |
 | `jina-ai/jina-ocr-v1`, `jina-ai/ReaderLM-v2` | OCR / ридер | каталог |
-| `jina-ai/jina-clip-v2`, линейки colbert / code-embeddings | семейство эмбеддингов | каталог |
+| `jina-ai/jina-clip-v2`, линии colbert / code-embeddings | семейство эмбеддингов | каталог |
 > ⚠️ **Подвох при вызове:** `GET /v1/models` перечисляет id с префиксом владельца `jina-ai/`, но вызовы API принимают **короткий id** — `{"model":"jina-embeddings-v4"}` отвечает 200, а с префиксом `jina-ai/jina-embeddings-v4` отвечает **422** (измерено 2026-10-19).
 
 ```bash
@@ -75,7 +75,7 @@ curl https://api.jina.ai/v1/embeddings \
 
 ## 🧪 Как использовать API
 
-Базовый URL — **`https://api.jina.ai/v1`**.
+Базовый URL **`https://api.jina.ai/v1`**.
 
 ```python
 import requests
@@ -99,11 +99,11 @@ node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
 ```
 
-Пробная конечная точка защищена управляемым Cloudflare Turnstile, поэтому CLI требует один свежий токен на каждый ключ: откройте <https://jina.ai/reader>, нажмите **GET YOUR API KEY** и скопируйте значение `cf-turnstile-response` из скрытого поля (DevTools → Elements), либо укажите в `--token-cmd` решатель, который печатает токен в stdout. `keys.txt` записывается только после живого ответа 200 от embeddings/rerank; `accounts.json` хранит user_id + снимок кошелька.
+Пробная конечная точка защищена управляемым Cloudflare Turnstile, поэтому CLI нужен один свежий токен на каждый ключ: откройте <https://jina.ai/reader>, нажмите **GET YOUR API KEY** и скопируйте значение `cf-turnstile-response` из скрытого поля (DevTools → Elements), либо укажите `--token-cmd` на солвер, который выводит токен в stdout. `keys.txt` записывается только после живого ответа 200 от embeddings/rerank; `accounts.json` хранит user_id + снимок кошелька.
 
 ### 🖱️ Лаунчер
 
-Лаунчер запрашивает список прокси и количество, запоминает их и запускает CLI — выпуск, проверка, отбор выходов, настройки, справка, подключение к 9Router.
+Лаунчер запрашивает список прокси и количество, запоминает их и запускает CLI — mint, verify, screen exits, settings, help, Connect to 9Router.
 
 ## ✅ Проверено в работе — каждый ключ тестируется
 
@@ -122,6 +122,12 @@ node src/cli.js --verify-only
 node src/cli.js --screen
 ```
 
+> **Контроль качества.** Каждый ключ здесь прошёл живой `chat-200` до того, как был записан в `keys.txt`
+> (мёртвые ключи никогда не поставляются). Комбинации роутера следуют тому же правилу на уровне модели: запись
+> добавляется **только если модель отвечает `chat-200` и умеет вызывать инструменты** — модель без поддержки инструментов,
+> мёртвый ключ или мёртвый провайдер отбрасывается, а не добавляется. Перезапускайте шаг проверки в любое время;
+> сбои сообщаются, но никогда не скрываются.
+
 ## 🧭 Как это работает
 
 ```
@@ -137,8 +143,8 @@ inbox (one address per account)                                  a fresh address
 | --- | --- | --- |
 | страница | `jina.ai/reader` → "GET YOUR API KEY" | управляемый виджет Turnstile |
 | ключ | `POST https://keygen.jina.ai/trial` (multipart, `cf-turnstile-response`) | 200 → `api_key`; 429 → попробуйте `/empty` |
-| доказательство | `POST api.jina.ai/v1/embeddings` (+ rerank) | 200 с реальным usage = ключ живой |
-| ротация | свежий выход на каждый ключ | квота проб считается на IP |
+| доказательство | `POST api.jina.ai/v1/embeddings` (+ rerank) | 200 с реальным usage = ключ проверен |
+| ротация | свежий выход на каждый ключ | пробная квота считается на IP |
 
 ## ⚙️ Опции CLI
 
@@ -152,22 +158,22 @@ node src/cli.js --help
 
 | Переменная | По умолчанию | Значение |
 | --- | --- | --- |
-| `JINA_PROXIES` | `proxies.txt` | пул выходов, по одной строке на прокси |
+| `JINA_PROXIES` | `proxies.txt` | необязательный пул выходов, одна строка на прокси |
 | `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | модель для живой проверки |
 
 ## 🛰️ За прокси
 
-**Необязательно — рекомендуется при масштабе (лимиты на IP, блокировки).** Инструмент работает и без прокси.
+**Необязательно — рекомендуется при масштабе (лимиты на IP, баны).** Инструмент работает и без прокси.
 
-- **С пулом:** передайте `--pool <file>` (или задайте `JINA_PROXIES`), и каждый запрос идёт через выход из этого списка — мёртвая строка проваливает эту попытку, и инструмент переходит к следующей (fail-closed, пока пул задан; пул перепроверяется при использовании).
-- **Без пула:** CLI печатает `running WITHOUT a proxy (direct)` и подключается напрямую. В регистрации, проверке, выпуске ключей или верификации ничего не меняется — только то, откуда уходят пакеты.
-- Запустите `--screen` в любом из режимов: он тестирует имеющиеся выходы (или прямой маршрут) против провайдера перед реальным запуском.
+- **С пулом:** передайте `--pool <file>` (или задайте `JINA_PROXIES`), и каждый запрос идёт через выход из этого списка — мёртвая линия проваливает эту попытку, и инструмент переходит к следующей (fail-closed, пока пул предоставлен; пул перепроверяется при использовании).
+- **Без пула:** CLI выводит `running WITHOUT a proxy (direct)` и подключается напрямую. Ничего в регистрации, check-in, выпуске ключей или проверке не меняется — меняется только то, откуда уходят пакеты.
+- Запустите `--screen` в любом из режимов: он тестирует имеющиеся у вас выходы (или прямой маршрут) против провайдера перед реальным запуском.
 
 ## 📄 Файлы
 
 | Путь | Содержимое |
 | --- | --- |
-| `keys.txt` | по одному проверенному в работе ключу на строку — игнорируется git |
+| `keys.txt` | один живой проверенный ключ на строку — игнорируется git |
 | `accounts.json` | user_id / снимок кошелька / id ключа |
 | `proxies.txt` | ваши выходы — игнорируется git |
 | `outputs/` | логи запусков — игнорируется git |
@@ -191,19 +197,20 @@ node src/connect-omniroute.js --base http://localhost:20128 --password 123456
 ```
 
 По умолчанию: `--prefix jina`, `--base-url https://api.jina.ai/v1`, `--model jina-ai/jina-embeddings-v4`. Модели подаются как `jina/<model id>`.
+
 ## 🔑 Что даёт один ключ
 
 | | |
 | --- | --- |
 | 🏢 Провайдер | **Jina AI** — [jina.ai](https://jina.ai) |
 | 🎁 Что даёт провайдер | анонимные пробные ключи, 10M пробных токенов, без регистрации |
-| 🔑 Что даёт один ключ | 500 RPM на embeddings/rerank (2M TPM), 30 идентификаторов каталога на `https://api.jina.ai/v1` |
+| 🔑 Что даёт один ключ | 500 RPM на embeddings/rerank (2M TPM), 30 id каталога на `https://api.jina.ai/v1` |
 | 🌐 Форма API | `POST https://api.jina.ai/v1/embeddings` · `POST /v1/rerank` |
 | 🔒 Ваши данные | контакт только с `jina.ai` / `keygen.jina.ai` / `api.jina.ai` |
 
 ## 🐞 Проблемы
 
-Если Jina изменит конечные точки keygen, sitekey Turnstile или политику проб, инструмент остановится на этом месте и сообщит об этом. **[Откройте issue](../../issues)**, указав команду и точный вывод.
+Если Jina изменит конечные точки keygen, sitekey Turnstile или пробную политику, инструмент остановится на этом месте и сообщит об этом. **[Откройте issue](../../issues)** с командой и точным выводом.
 
 ## 📄 Лицензия
 

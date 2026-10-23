@@ -21,7 +21,7 @@
 [![OmniRoute](https://img.shields.io/badge/OmniRoute-connector-8B5CF6?style=for-the-badge)](#-connect-to-omniroute)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
-[🛠 Inicio rápido](#-quick-start) · [🎁 Nivel gratuito](#-free-tier--how-much-you-get) · [🤖 Modelos](#-models--all-30-of-them) · [🧪 Usar la API](#-how-to-use-the-api) · [✅ Verificado](#-verified-working--every-key-is-tested) · [🧭 Cómo funciona](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ Opciones](#️-cli-options) · [🛰️ Proxies](#️-behind-a-proxy) · [🐞 Problemas](#-issues)
+[🛠 Inicio rápido](#-quick-start) · [🎁 Nivel gratuito](#-free-tier--how-much-you-get) · [🤖 Modelos](#-models--all-30-of-them) · [🧪 Usar la API](#-how-to-use-the-api) · [✅ Verificado](#-verified-working--every-key-is-tested) · [🧭 Cómo funciona](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [🔌 OmniRoute](#-connect-to-omniroute) · [⚙️ Opciones](#️-cli-options) · [🛰️ Proxies](#️-behind-a-proxy) · [🐞 Problemas](#-issues)
 
 </div>
 
@@ -35,7 +35,7 @@
 
 ## ✨ Por qué existe esto
 
-Jina AI reparte **claves API de prueba sin necesidad de cuenta**: la página del reader ejecuta un Turnstile gestionado y `POST keygen.jina.ai/trial` devuelve `{"api_key":"jina_…"}` (cuando la cuota de prueba por IP responde 429, `POST keygen.jina.ai/empty` sigue acuñando una clave de 0 tokens). Cada clave lleva un **saldo de prueba de 10.000.000 de tokens** (trial_end 2036) en una cuenta anónima `auto_<uuid>`, y tanto embeddings como rerank responden 200 con recuentos de tokens. Una clave por salida — esa es la unidad que este herramienta procesa por lotes.
+Jina AI entrega **claves API de prueba sin necesidad de cuenta alguna**: la página del reader ejecuta un Turnstile gestionado y `POST keygen.jina.ai/trial` devuelve `{"api_key":"jina_…"}` (cuando la cuota de prueba por IP responde 429, `POST keygen.jina.ai/empty` igualmente emite una clave de 0 tokens). Cada clave lleva un **saldo de prueba de 10.000.000 de tokens** (trial_end 2036) en una cuenta anónima `auto_<uuid>`, y tanto embeddings como rerank responden 200 con recuentos de tokens. Una clave por salida — esa es la unidad que esta herramienta procesa por lotes.
 
 ## 🎁 Nivel gratuito — cuánto obtienes
 
@@ -43,12 +43,12 @@ Jina AI reparte **claves API de prueba sin necesidad de cuenta**: la página del
 | --- | --- |
 | Cuenta | ninguna — `auto_<uuid>` anónima por clave (`email: null`) |
 | Saldo de prueba | **10.000.000 de tokens** por clave (wallet `trial_balance`, trial_end 2036-10-19) |
-| Puerta | Cloudflare Turnstile gestionado en `keygen.jina.ai/trial` (token nuevo por ejecución) |
-| Escalera 429 | cuota de prueba por IP agotada → `POST keygen.jina.ai/empty` sigue emitiendo una clave (0 tokens de prueba) |
+| Barrera | Cloudflare Turnstile gestionado en `keygen.jina.ai/trial` (token nuevo por ejecución) |
+| Escalera 429 | cuota de prueba por IP agotada → `POST keygen.jina.ai/empty` igualmente emite una clave (0 tokens de prueba) |
 | Límites de velocidad | sin clave: 20 RPM; clave gratuita: **500 RPM** (embed/rerank; 2M TPM por clave) |
 | Gestión de claves | `api.jina.ai/api/v1/api_key` (revocar) con una cabecera `cf-turnstile-response` |
 
-> 💡 El nivel gratuito lo define Jina AI y puede cambiar. Consulta las cifras en vivo en [jina.ai](https://jina.ai) — y deja que la propia puerta de la herramienta decida:
+> 💡 El nivel gratuito lo define Jina AI y puede cambiar. Consulta las cifras en vivo en [jina.ai](https://jina.ai) — y deja que la propia barrera de la herramienta decida:
 
 ```bash
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
@@ -56,7 +56,7 @@ node src/cli.js --verify-only     # every key in keys.txt is re-tested with a re
 
 ## 🤖 Modelos — los 30
 
-`GET https://api.jina.ai/v1/models` es público y devolvió **30 ids**, incluidos:
+`GET https://api.jina.ai/v1/models` es público y devolvió **30 ids**, entre ellos:
 
 | ID de modelo | Superficie | Verificado |
 | --- | --- | --- |
@@ -65,7 +65,7 @@ node src/cli.js --verify-only     # every key in keys.txt is re-tested with a re
 | `jina-ai/jina-reranker-v3`, `jina-ai/jina-reranker-v3.5` | línea rerank | catálogo |
 | `jina-ai/jina-ocr-v1`, `jina-ai/ReaderLM-v2` | OCR / reader | catálogo |
 | `jina-ai/jina-clip-v2`, líneas colbert / code-embeddings | familia embeddings | catálogo |
-> ⚠️ **Trampa al llamar:** `GET /v1/models` lista los ids con el prefijo de propietario `jina-ai/`, pero las llamadas a la API aceptan el **id corto** — `{"model":"jina-embeddings-v4"}` responde 200, el prefijado `jina-ai/jina-embeddings-v4` responde **422** (medido el 2026-10-19).
+> ⚠️ **Trampa al llamar:** `GET /v1/models` lista los ids con el prefijo de propietario `jina-ai/`, pero las llamadas a la API toman el **id corto** — `{"model":"jina-embeddings-v4"}` responde 200, el prefijado `jina-ai/jina-embeddings-v4` responde **422** (medido el 2026-10-19).
 
 ```bash
 curl https://api.jina.ai/v1/embeddings \
@@ -99,7 +99,7 @@ node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
 ```
 
-El endpoint de prueba está detrás de un Cloudflare Turnstile gestionado, así que el CLI necesita un token nuevo por clave: abre <https://jina.ai/reader>, pulsa **GET YOUR API KEY** y copia el valor `cf-turnstile-response` del input oculto (DevTools → Elements), o apunta `--token-cmd` a un solver que imprima un token en stdout. `keys.txt` se escribe solo tras un 200 en vivo de embeddings/rerank; `accounts.json` guarda el user_id + la instantánea del wallet.
+El endpoint de prueba está detrás de un Cloudflare Turnstile gestionado, así que el CLI necesita un token nuevo por clave: abre <https://jina.ai/reader>, pulsa **GET YOUR API KEY** y copia el valor de `cf-turnstile-response` del input oculto (DevTools → Elements), o apunta `--token-cmd` a un solver que imprima un token en stdout. `keys.txt` solo se escribe tras un 200 en vivo de embeddings/rerank; `accounts.json` conserva el user_id + la instantánea del wallet.
 
 ### 🖱️ El launcher
 
@@ -122,6 +122,12 @@ node src/cli.js --verify-only
 node src/cli.js --screen
 ```
 
+> **Barreras de calidad.** Cada clave aquí pasó un `chat-200` en vivo antes de escribirse en `keys.txt`
+> (las claves muertas nunca se entregan). Las combinaciones del router siguen la misma regla a nivel de modelo: una entrada se
+> añade **solo si el modelo responde `chat-200` y puede llamar a herramientas** — un modelo sin soporte de herramientas,
+> una clave muerta o un proveedor muerto se descarta en lugar de añadirse. Vuelve a ejecutar el paso de verificación cuando quieras;
+> los fallos se reportan, nunca se ocultan.
+
 ## 🧭 Cómo funciona
 
 ```
@@ -137,7 +143,7 @@ inbox (one address per account)                                  a fresh address
 | --- | --- | --- |
 | página | `jina.ai/reader` → "GET YOUR API KEY" | widget Turnstile gestionado |
 | clave | `POST https://keygen.jina.ai/trial` (multipart, `cf-turnstile-response`) | 200 → `api_key`; 429 → prueba `/empty` |
-| prueba | `POST api.jina.ai/v1/embeddings` (+ rerank) | 200 con uso real = clave activa |
+| prueba | `POST api.jina.ai/v1/embeddings` (+ rerank) | 200 con uso real = clave verificada |
 | rotación | salida nueva por clave | la cuota de prueba es por IP |
 
 ## ⚙️ Opciones del CLI
@@ -150,17 +156,17 @@ node src/cli.js --connect-9router
 node src/cli.js --help
 ```
 
-| Variable de entorno | Por defecto | Significado |
+| Env | Por defecto | Significado |
 | --- | --- | --- |
-| `JINA_PROXIES` | `proxies.txt` | pool de salidas, una línea por proxy |
+| `JINA_PROXIES` | `proxies.txt` | pool de salidas opcional, una línea por proxy |
 | `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | modelo para la verificación en vivo |
 
 ## 🛰️ Detrás de un proxy
 
 **Opcional — recomendado a escala (límites por IP, baneos).** La herramienta también funciona sin proxy.
 
-- **Con un pool:** pasa `--pool <file>` (o define `JINA_PROXIES`) y cada petición sale por una salida de esa lista — una línea muerta hace fallar ese intento y la herramienta pasa a la siguiente (fail-closed mientras se proporciona un pool; el pool se vuelve a sondear al usarse).
-- **Sin un pool:** el CLI imprime `running WITHOUT a proxy (direct)` y se conecta directamente. Nada del registro, check-in, acuñación de claves o verificación cambia — solo desde dónde salen los paquetes.
+- **Con un pool:** pasa `--pool <file>` (o define `JINA_PROXIES`) y cada petición pasa por una salida de esa lista — una línea muerta hace fallar ese intento y la herramienta pasa a la siguiente (fail-closed mientras se proporciona un pool; el pool se re-sondea al usarse).
+- **Sin un pool:** el CLI imprime `running WITHOUT a proxy (direct)` y se conecta directamente. Nada del registro, check-in, emisión de claves o verificación cambia — solo desde dónde salen los paquetes.
 - Ejecuta `--screen` en cualquiera de los dos modos: prueba las salidas que tengas (o la ruta directa) contra el proveedor antes de una ejecución real.
 
 ## 📄 Archivos
@@ -191,6 +197,7 @@ node src/connect-omniroute.js --base http://localhost:20128 --password 123456
 ```
 
 Valores por defecto: `--prefix jina`, `--base-url https://api.jina.ai/v1`, `--model jina-ai/jina-embeddings-v4`. Los modelos se sirven como `jina/<model id>`.
+
 ## 🔑 Qué te da una clave
 
 | | |

@@ -11,7 +11,7 @@
 
 # jina-bulk-apikey
 
-**Jina AI deneme API anahtarlarını toplu olarak üretin — embeddings, reranker ve reader yüzeyleri — bir 9Router bağlayıcısıyla.**
+**Jina AI deneme API anahtarlarını toplu olarak oluşturun — embeddings, reranker ve reader yüzeyleri — bir 9Router bağlayıcısıyla.**
 
 [![Node](https://img.shields.io/badge/Node-%E2%89%A518-3DA639?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-blue?style=for-the-badge)](#)
@@ -21,7 +21,7 @@
 [![OmniRoute](https://img.shields.io/badge/OmniRoute-connector-8B5CF6?style=for-the-badge)](#-connect-to-omniroute)
 [![X](https://img.shields.io/badge/X-%40bigbullapp-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/bigbullapp)
 
-[🛠 Hızlı başlangıç](#-quick-start) · [🎁 Ücretsiz katman](#-free-tier--how-much-you-get) · [🤖 Modeller](#-models--all-30-of-them) · [🧪 API'yi kullanın](#-how-to-use-the-api) · [✅ Doğrulandı](#-verified-working--every-key-is-tested) · [🧭 Nasıl çalışır](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [⚙️ Seçenekler](#️-cli-options) · [🛰️ Proxy'ler](#️-behind-a-proxy) · [🐞 Sorunlar](#-issues)
+[🛠 Hızlı başlangıç](#-quick-start) · [🎁 Ücretsiz katman](#-free-tier--how-much-you-get) · [🤖 Modeller](#-models--all-30-of-them) · [🧪 API'yi kullanın](#-how-to-use-the-api) · [✅ Doğrulandı](#-verified-working--every-key-is-tested) · [🧭 Nasıl çalışır](#-how-it-works) · [🔌 9Router](#-connect-to-9router) · [🔌 OmniRoute](#-connect-to-omniroute) · [⚙️ Seçenekler](#️-cli-options) · [🛰️ Proxy'ler](#️-behind-a-proxy) · [🐞 Sorunlar](#-issues)
 
 </div>
 
@@ -35,9 +35,9 @@
 
 ## ✨ Bu neden var
 
-Jina AI, **hiç hesap gerektirmeden deneme API anahtarları** dağıtır: reader sayfası yönetilen bir Turnstile çalıştırır ve `POST keygen.jina.ai/trial` şu yanıtı döndürür: `{"api_key":"jina_…"}` (IP başına deneme kotası 429 döndürdüğünde, `POST keygen.jina.ai/empty` yine de 0 token'lı bir anahtar üretir). Her anahtar, anonim bir `auto_<uuid>` hesabında **10.000.000 token'lık deneme bakiyesi** taşır (trial_end 2036) ve hem embeddings hem de rerank, token sayılarıyla birlikte 200 yanıtı verir. Çıkış başına bir anahtar — bu aracın toplu olarak işlediği birim budur.
+Jina AI, **hiç hesap gerektirmeyen deneme API anahtarları** dağıtır: reader sayfası yönetilen bir Turnstile çalıştırır ve `POST keygen.jina.ai/trial` şu yanıtı döndürür: `{"api_key":"jina_…"}` (IP başına deneme kotası 429 döndürdüğünde, `POST keygen.jina.ai/empty` yine de 0 token'lı bir anahtar üretir). Her anahtar, anonim bir `auto_<uuid>` hesabında **10.000.000 token'lık deneme bakiyesi** (trial_end 2036) taşır ve hem embeddings hem de rerank, token sayılarıyla birlikte 200 yanıtı verir. Çıkış başına bir anahtar — bu aracın toplu olarak işlediği birim budur.
 
-## 🎁 Ücretsiz katman — ne kadar elde edersiniz
+## 🎁 Ücretsiz katman — ne kadar alıyorsunuz
 
 | Ne | Değer |
 | --- | --- |
@@ -45,8 +45,8 @@ Jina AI, **hiç hesap gerektirmeden deneme API anahtarları** dağıtır: reader
 | Deneme bakiyesi | anahtar başına **10.000.000 token** (cüzdan `trial_balance`, trial_end 2036-10-19) |
 | Kapı | `keygen.jina.ai/trial` üzerinde yönetilen Cloudflare Turnstile (her çalıştırmada taze token) |
 | 429 merdiveni | IP başına deneme kotası doldu → `POST keygen.jina.ai/empty` yine de bir anahtar verir (0 deneme token'ı) |
-| Hız limitleri | anahtar yok: 20 RPM; ücretsiz anahtar: **500 RPM** (embed/rerank; anahtar başına 2M TPM) |
-| Anahtar yönetimi | `api.jina.ai/api/v1/api_key` (iptal) — `cf-turnstile-response` başlığıyla |
+| Hız limitleri | anahtarsız: 20 RPM; ücretsiz anahtar: **500 RPM** (embed/rerank; anahtar başına 2M TPM) |
+| Anahtar yönetimi | `api.jina.ai/api/v1/api_key` (iptal) ve bir `cf-turnstile-response` başlığı |
 
 > 💡 Ücretsiz katman Jina AI tarafından belirlenir ve değişebilir. Güncel sayıları [jina.ai](https://jina.ai) adresinden kontrol edin — ve kararı aracın kendi kapısına bırakın:
 
@@ -54,7 +54,7 @@ Jina AI, **hiç hesap gerektirmeden deneme API anahtarları** dağıtır: reader
 node src/cli.js --verify-only     # every key in keys.txt is re-tested with a real chat call
 ```
 
-## 🤖 Modeller — 30 tanesinin tamamı
+## 🤖 Modeller — 30'unun tamamı
 
 `GET https://api.jina.ai/v1/models` herkese açıktır ve **30 id** döndürdü, bunlar arasında:
 
@@ -65,7 +65,7 @@ node src/cli.js --verify-only     # every key in keys.txt is re-tested with a re
 | `jina-ai/jina-reranker-v3`, `jina-ai/jina-reranker-v3.5` | rerank hattı | katalog |
 | `jina-ai/jina-ocr-v1`, `jina-ai/ReaderLM-v2` | OCR / reader | katalog |
 | `jina-ai/jina-clip-v2`, colbert / code-embeddings hatları | embeddings ailesi | katalog |
-> ⚠️ **Çağrı tuzağı:** `GET /v1/models` id'leri `jina-ai/` sahip önekiyle listeler, ancak API çağrıları **kısa id**'yi alır — `{"model":"jina-embeddings-v4"}` 200 yanıtı verir, önekli `jina-ai/jina-embeddings-v4` ise **422** verir (ölçüm 2026-10-19).
+> ⚠️ **Çağrı tuzağı:** `GET /v1/models` id'leri `jina-ai/` sahip önekiyle listeler, ancak API çağrıları **kısa id** alır — `{"model":"jina-embeddings-v4"}` 200 yanıtı verir, önekli `jina-ai/jina-embeddings-v4` ise **422** yanıtı verir (ölçüm: 2026-10-19).
 
 ```bash
 curl https://api.jina.ai/v1/embeddings \
@@ -85,7 +85,7 @@ r = requests.post("https://api.jina.ai/v1/embeddings",
 print(r.status_code, r.json()["usage"])
 ```
 
-Anahtarsız yardımcı yüzeyler: `r.jina.ai` (reader, 20 RPM) ve `s.jina.ai` (search).
+Anahtarsız yardımcı yüzeyler: `r.jina.ai` (reader, 20 RPM) ve `s.jina.ai` (arama).
 
 ## 🛠 Hızlı başlangıç
 
@@ -99,7 +99,7 @@ node src/cli.js --count 5 --token "<cf-turnstile-response from jina.ai/reader>"
 # or wire a solver:  node src/cli.js --count 5 --token-cmd "your-solver-command"
 ```
 
-Deneme uç noktası yönetilen bir Cloudflare Turnstile arkasındadır, bu nedenle CLI'nin anahtar başına bir taze token'a ihtiyacı vardır: <https://jina.ai/reader> adresini açın, **GET YOUR API KEY** düğmesine basın ve gizli input'tan `cf-turnstile-response` değerini kopyalayın (DevTools → Elements) veya `--token-cmd` seçeneğini stdout'a token yazdıran bir çözücüye yönlendirin. `keys.txt` yalnızca canlı bir embeddings/rerank 200 yanıtından sonra yazılır; `accounts.json` user_id + cüzdan anlık görüntüsünü saklar.
+Deneme uç noktası yönetilen bir Cloudflare Turnstile arkasındadır, bu nedenle CLI'nin anahtar başına bir taze token'a ihtiyacı vardır: <https://jina.ai/reader> adresini açın, **GET YOUR API KEY** düğmesine basın ve gizli input'tan `cf-turnstile-response` değerini kopyalayın (DevTools → Elements) veya `--token-cmd` seçeneğini stdout'a bir token yazdıran bir çözücüye yönlendirin. `keys.txt` yalnızca canlı bir embeddings/rerank 200 yanıtından sonra yazılır; `accounts.json` user_id + cüzdan anlık görüntüsünü saklar.
 
 ### 🖱️ Başlatıcı
 
@@ -113,7 +113,7 @@ Başlatıcı proxy listesini ve sayıyı sorar, bunları hatırlar ve CLI'yi ça
 | `POST keygen.jina.ai/empty` (429 merdiveni) | **200** — 0 token'lı bir anahtar yine de verilir |
 | `POST /v1/embeddings` (`jina-embeddings-v4`, kısa id) — yazılmadan önce **her** anahtar için | **200**, token'lar sayıldı |
 | `POST /v1/rerank` (`jina-reranker-v2-base-multilingual`, kısa id) | **200**, token'lar sayıldı |
-| `jina-ai/jina-embeddings-v4` (önekli id) | **422** — kısa id'yi kullanın (ölçüm 2026-10-19) |
+| `jina-ai/jina-embeddings-v4` (önekli id) | **422** — kısa id kullanın (ölçüm: 2026-10-19) |
 | cüzdan | `trial_balance=10,000,000`, `trial_end` 2036, `email: null` |
 | kontrolünde başarısız olan bir anahtar | asla yazılmaz — hesap `accounts.json` içinde kalır |
 
@@ -121,6 +121,12 @@ Başlatıcı proxy listesini ve sayıyı sorar, bunları hatırlar ve CLI'yi ça
 node src/cli.js --verify-only
 node src/cli.js --screen
 ```
+
+> **Kalite kapıları.** Buradaki her anahtar, `keys.txt` dosyasına yazılmadan önce canlı bir `chat-200` testini geçti
+> (ölü anahtarlar asla gönderilmez). Router kombinasyonları model düzeyinde aynı kuralı izler: bir giriş
+> **yalnızca model `chat-200` yanıtı veriyorsa ve araçları çağırabiliyorsa** eklenir — araç desteği olmayan bir model,
+> ölü bir anahtar veya ölü bir sağlayıcı eklenmek yerine çıkarılır. Doğrulama adımını istediğiniz zaman yeniden çalıştırın;
+> başarısızlıklar bildirilir, asla gizlenmez.
 
 ## 🧭 Nasıl çalışır
 
@@ -137,7 +143,7 @@ inbox (one address per account)                                  a fresh address
 | --- | --- | --- |
 | sayfa | `jina.ai/reader` → "GET YOUR API KEY" | yönetilen Turnstile widget'ı |
 | anahtar | `POST https://keygen.jina.ai/trial` (multipart, `cf-turnstile-response`) | 200 → `api_key`; 429 → `/empty` deneyin |
-| kanıt | `POST api.jina.ai/v1/embeddings` (+ rerank) | gerçek kullanımla 200 = anahtar canlı |
+| kanıt | `POST api.jina.ai/v1/embeddings` (+ rerank) | gerçek kullanımla 200 = anahtar doğrulandı |
 | rotasyon | anahtar başına taze çıkış | deneme kotası IP başınadır |
 
 ## ⚙️ CLI seçenekleri
@@ -152,16 +158,16 @@ node src/cli.js --help
 
 | Env | Varsayılan | Anlamı |
 | --- | --- | --- |
-| `JINA_PROXIES` | `proxies.txt` | çıkış havuzu, satır başına bir proxy |
+| `JINA_PROXIES` | `proxies.txt` | isteğe bağlı çıkış havuzu, her satırda bir proxy |
 | `JINA_MODEL` | `jina-ai/jina-embeddings-v4` | canlı doğrulama için model |
 
 ## 🛰️ Proxy arkasında
 
 **İsteğe bağlı — ölçekte önerilir (IP başına limitler, yasaklar).** Araç proxy olmadan da çalışır.
 
-- **Havuzla:** `--pool <file>` geçin (veya `JINA_PROXIES` ayarlayın) ve her istek o listeden bir çıkış üzerinden gider — ölü bir satır o denemeyi başarısız kılar ve araç bir sonrakine geçer (bir havuz sağlandığında fail-closed; havuz kullanım anında yeniden yoklanır).
-- **Havuz olmadan:** CLI `running WITHOUT a proxy (direct)` yazdırır ve doğrudan bağlanır. Kayıt, check-in, anahtar üretimi veya doğrulamayla ilgili hiçbir şey değişmez — yalnızca paketlerin nereden çıktığı değişir.
-- Her iki moda karşı `--screen` çalıştırın: gerçek bir çalıştırmadan önce sahip olduğunuz çıkışları (veya doğrudan rotayı) sağlayıcıya karşı test eder.
+- **Havuzla:** `--pool <file>` geçin (veya `JINA_PROXIES` ayarlayın) ve her istek bu listeden bir çıkış üzerinden gider — ölü bir hat o denemeyi başarısız kılar ve araç bir sonrakine geçer (bir havuz sağlandığında fail-closed; havuz kullanım sırasında yeniden yoklanır).
+- **Havuzsuz:** CLI `running WITHOUT a proxy (direct)` yazdırır ve doğrudan bağlanır. Kayıt, check-in, anahtar üretimi veya doğrulama konusunda hiçbir şey değişmez — yalnızca paketlerin nereden çıktığı değişir.
+- Her iki modda da `--screen` çalıştırın: gerçek bir çalıştırmadan önce sahip olduğunuz çıkışları (veya doğrudan rotayı) sağlayıcıya karşı test eder.
 
 ## 📄 Dosyalar
 
@@ -191,6 +197,7 @@ node src/connect-omniroute.js --base http://localhost:20128 --password 123456
 ```
 
 Varsayılanlar: `--prefix jina`, `--base-url https://api.jina.ai/v1`, `--model jina-ai/jina-embeddings-v4`. Modeller `jina/<model id>` olarak sunulur.
+
 ## 🔑 Bir anahtar size ne kazandırır
 
 | | |
@@ -211,6 +218,6 @@ MIT © 2026 — bkz. [LICENSE](LICENSE).
 
 <div align="center">
 
-**[MIT](LICENSE)** © 2026 jina-bulk-apikey contributors
+**[MIT](LICENSE)** © 2026 jina-bulk-apikey katkıda bulunanlar
 
 </div>
