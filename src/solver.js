@@ -127,6 +127,30 @@ function launchHint(err) {
   return fail('launch-failed', m.slice(0, 300));
 }
 
+/** `http://user:pass@host:port` → the flag-safe server plus the credentials Chrome
+ *  refuses to take inside it (`net::ERR_NO_SUPPORTED_PROXIES`). */
+function proxyParts(proxy) {
+  if (!proxy) return null;
+  try {
+    const u = new URL(String(proxy));
+    return { server: `${u.protocol}//${u.host}`, username: decodeURIComponent(u.username || ''), password: decodeURIComponent(u.password || '') };
+  } catch (e) {
+    return { server: String(proxy), username: '', password: '' };
+  }
+}
+
+/** A credentialed exit's 407 is answered on our own CDP session: Chrome sends no
+ *  userinfo from `--proxy-server`, so the Fetch domain carries it instead. */
+async function authenticateProxy(cdp, creds, log) {
+  cdp.on('Fetch.authRequired', (p) => cdp.send('Fetch.continueWithAuth', {
+    requestId: p.requestId,
+    authChallengeResponse: { response: 'ProvideCredentials', username: creds.username, password: creds.password },
+  }).catch(() => {}));
+  cdp.on('Fetch.requestPaused', (p) => cdp.send('Fetch.continueRequest', { requestId: p.requestId }).catch(() => {}));
+  await cdp.send('Fetch.enable', { handleAuthRequests: true });
+  log('proxy auth via Fetch.handleAuthRequests');
+}
+
 // ------------------------------------------------------------ chrome session
 /**
  * Launches a throwaway offscreen Chrome with a fresh profile and hands the
@@ -158,7 +182,8 @@ async function withChrome({ proxy = '', chromePath = '', timeoutMs = DEFAULT_TIM
     },
     findChrome(chromePath),
   );
-  if (proxy) opts.args.push(`--proxy-server=${proxy}`);
+  const px = proxyParts(proxy);
+  if (px) opts.args.push(`--proxy-server=${px.server}`);
 
   let browser = null;
   let cdp = null;
@@ -171,7 +196,8 @@ async function withChrome({ proxy = '', chromePath = '', timeoutMs = DEFAULT_TIM
     }
     const page = await browser.newPage();
     cdp = await page.createCDPSession();
-    log(`chrome ${opts.executablePath || 'channel:chrome'}${proxy ? ` via ${proxy}` : ''}`);
+    if (px && px.username) await authenticateProxy(cdp, px, log);
+    log(`chrome ${opts.executablePath || 'channel:chrome'}${px ? ` via ${px.server}` : ''}`);
     return await fn({ page, cdp, log });
   } finally {
     clearTimeout(timer);
